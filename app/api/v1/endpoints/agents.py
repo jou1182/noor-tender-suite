@@ -110,11 +110,41 @@ def preview_agent(agent_key: str, body: Dict[str, Any], db: Session = Depends(ge
     ]
 
     try:
-        from app.core.llm_gateway_v2 import chat
+        from app.core.llm_gateway_v2 import chat, test_connection
 
         requested_model = str(draft.get("model_override") or agent.model_override or provider.model or "")
 
-        # محاولة أولى بالموديل المطلوب؛ إن كان غير متاح نستخدم أول موديل فعلي للمزود
+        def _is_model_not_found(exc: Exception) -> bool:
+            """كل صور رفض المزود للموديل: invalid model / not found / no endpoints / 400-404."""
+            msg = str(exc).lower()
+            signals = (
+                "invalid" in msg and "model" in msg,
+                "not found" in msg and "model" in msg,
+                "no endpoints" in msg,
+                "no allowed providers" in msg,
+                "model" in msg and ("404" in msg or "400" in msg),
+                "http 400" in msg,
+                "http 404" in msg,
+            )
+            return any(signals)
+
+        def _pick_fallback() -> str:
+            """يختار أفضل موديل متاح فعلاً لدى المزود — يفضّل موديلات معروفة الجودة."""
+            try:
+                available = [m for m in (test_connection(provider).get("models") or []) if m]
+            except Exception:  # noqa: BLE001
+                available = []
+            if not available:
+                return requested_model
+            # تفضيل موديلات جيدة معروفة إن وجدت (ترتيب الأولوية)
+            preferred_tokens = ("qwen", "deepseek", "llama-3.3", "llama3.3", "gpt-4o", "claude", "gemini", "mistral")
+            for token in preferred_tokens:
+                for m in available:
+                    if token in m.lower():
+                        return m
+            return available[0]
+
+        # محاولة أولى بالموديل المطلوب؛ إن رفضه المزود نختار بديلاً متاحاً تلقائياً
         used_model = requested_model
         try:
             result = chat(
@@ -124,17 +154,9 @@ def preview_agent(agent_key: str, body: Dict[str, Any], db: Session = Depends(ge
                 model_override=used_model,
             )
         except Exception as exc:  # noqa: BLE001
-            if not ("invalid" in str(exc).lower() and "model" in str(exc).lower()) and "400" not in str(exc):
+            if not _is_model_not_found(exc):
                 raise
-            try:
-                from app.core.llm_gateway_v2 import test_connection
-
-                available = [m for m in (test_connection(provider).get("models") or []) if m]
-            except Exception:  # noqa: BLE001
-                available = []
-            if not available:
-                raise
-            used_model = available[0]  # مثل qwen3:8b بدل llama3.1:8b القديم
+            used_model = _pick_fallback()
             result = chat(
                 provider,
                 messages,
