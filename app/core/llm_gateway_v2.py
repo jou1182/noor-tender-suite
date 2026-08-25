@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.crypto_vault import decrypt
 
-REQUEST_TIMEOUT = 120
+REQUEST_TIMEOUT = 300  # موديلات التفكير المحلية (qwen3.8) قد تحتاج دقائق لأول استدعاء
 
 
 class LLMGatewayError(Exception):

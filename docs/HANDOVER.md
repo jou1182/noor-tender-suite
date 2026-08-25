@@ -72,6 +72,7 @@ next build     → ✓ Compiled successfully (مرحلة page-data تفشل بس
    - `AgentFlowCanvas.AGENT_METAS` أسماء الوكلاء ثابتة فيه — يجب سحبها من `/agents` حتى تنعكس إعادة التسمية على اللوحة الحية.
    - توطين الواجهة (عربي RTL كامل) لم يُطبق إلا جزئياً في الرسائل.
 5. **أمان**: JWT secret ثابت في `app/core/security.py` و`api_client.ts` (dev only) — يجب نقله لـenv قبل أي نشر.
+6. **مزود Ollama المحلي (2026-08-25):** الموديلات المثبتة لدى المستخدم: `qwen3.8:latest` (تفكيري — بطيء، أول استدعاء ~دقيقتان)، `qwen3:8b`، `nomic-embed-text`. حدثنا سجل DB من llama3.1:8b القديم إلى qwen3:8b. بوابة LLM timeout رُفع إلى 300s لموديلات التفكير. نقطة preview تكتشف "invalid model name" وتستبدل تلقائياً بأول موديل متاح (`model_fallback: true` في الاستجابة).
 
 ## 5) أوامر سريعة
 

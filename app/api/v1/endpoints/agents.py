@@ -109,20 +109,51 @@ def preview_agent(agent_key: str, body: Dict[str, Any], db: Session = Depends(ge
     try:
         from app.core.llm_gateway_v2 import chat
 
-        result = chat(
-            provider,
-            messages,
-            temperature=float(draft.get("temperature", agent.temperature)),
-            model_override=str(draft.get("model_override") or agent.model_override or ""),
-        )
+        requested_model = str(draft.get("model_override") or agent.model_override or provider.model or "")
+
+        # محاولة أولى بالموديل المطلوب؛ إن كان غير متاح نستخدم أول موديل فعلي للمزود
+        used_model = requested_model
+        try:
+            result = chat(
+                provider,
+                messages,
+                temperature=float(draft.get("temperature", agent.temperature)),
+                model_override=used_model,
+            )
+        except Exception as exc:  # noqa: BLE001
+            if not ("invalid" in str(exc).lower() and "model" in str(exc).lower()) and "400" not in str(exc):
+                raise
+            try:
+                from app.core.llm_gateway_v2 import test_connection
+
+                available = [m for m in (test_connection(provider).get("models") or []) if m]
+            except Exception:  # noqa: BLE001
+                available = []
+            if not available:
+                raise
+            used_model = available[0]  # مثل qwen3:8b بدل llama3.1:8b القديم
+            result = chat(
+                provider,
+                messages,
+                temperature=float(draft.get("temperature", agent.temperature)),
+                model_override=used_model,
+            )
+
         return {
             "agent_key": agent_key,
             "replied_as": f"{draft.get('name_en') or agent.name_en} ({draft.get('name_ar') or agent.name_ar})",
-            "model": result.get("model") or provider.model,
+            "model": result.get("model") or used_model,
+            "model_fallback": used_model != requested_model,
             "usage": result.get("usage", {}),
             "reply": str(result.get("content", ""))[:4000],
         }
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001 — نُظهر الخطأ للمستخدم بدل انفجار 500 صامت
-        raise HTTPException(status_code=502, detail=f"Preview failed: {exc}")
+        detail = str(exc)
+        hint = ""
+        if "connection refused" in detail.lower() or "111" in detail:
+            hint = " — المزود لا يعمل. شغّل الخدمة المحلية (ollama serve) أو فعّل مزوداً آخر من تبويب LLM Providers."
+        elif "401" in detail or "api key" in detail.lower():
+            hint = " — مفتاح API مفقود أو خاطئ. أضفه من تبويب LLM Providers."
+        raise HTTPException(status_code=502, detail=f"Preview failed: {detail}{hint}")

@@ -450,8 +450,9 @@ function AgentCard(props: {
             dir="auto"
             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 font-mono leading-relaxed focus:outline-none focus:border-teal-500 resize-y"
           />
-          <p className="mt-2 text-[10px] text-slate-500">
-            اكتب للوكيل هويته: من هو، وماذا يفعل بدقة، وكيف يجيب، وما يجب ألا يفعله أبداً. يُحفظ مع بقية التعديلات.
+          <p className="mt-2.5 text-xs text-teal-300/90 leading-relaxed bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2" dir="rtl">
+            ✍️ اكتب للوكيل هويته كاملة: <span className="text-white font-bold">من هو، وماذا يفعل بدقة، وكيف يجيب، وما يجب ألا يفعله أبداً</span>.
+            كل حرف هنا يشكّل سلوكه الفعلي في السرب — ويُحفظ مع بقية التعديلات عند الضغط على «حفظ».
           </p>
         </div>
       )}
@@ -460,9 +461,14 @@ function AgentCard(props: {
       {preview.active && (
         <div className="mt-4 rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-4">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5 flex-wrap">
               <Play className="h-3 w-3" /> معاينة حية — {preview.repliedAs || '…'}
               {preview.model && <span className="font-mono text-cyan-600 normal-case">· {preview.model}</span>}
+              {preview.fallback && (
+                <span className="normal-case text-amber-400" title="الموديل المطلوب غير متاح لدى المزود — استُخدم أول موديل متاح تلقائياً">
+                  ⚠ auto-selected model
+                </span>
+              )}
             </p>
             <button onClick={() => preview.toggle()} className="p-1 rounded text-slate-400 hover:text-white"><X className="h-3.5 w-3.5" /></button>
           </div>
@@ -510,6 +516,7 @@ function useAgentPreview(agent: AgentEntry, draft: AgentDraft) {
   const [reply, setReply] = useState('');
   const [repliedAs, setRepliedAs] = useState('');
   const [model, setModel] = useState('');
+  const [fallback, setFallback] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -528,6 +535,7 @@ function useAgentPreview(agent: AgentEntry, draft: AgentDraft) {
       setReply(data.reply || '');
       setRepliedAs(data.replied_as || '');
       setModel(data.model || '');
+      setFallback(Boolean(data.model_fallback));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'فشلت المعاينة');
     } finally {
@@ -537,7 +545,7 @@ function useAgentPreview(agent: AgentEntry, draft: AgentDraft) {
 
   return {
     active, setActive, message, setMessage, sampleContext, setSampleContext,
-    reply, repliedAs, model, loading, error, run,
+    reply, repliedAs, model, fallback, loading, error, run,
     toggle: () => setActive((v) => !v),
   };
 }
