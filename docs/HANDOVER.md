@@ -59,6 +59,11 @@ next build     → ✓ Compiled successfully (مرحلة page-data تفشل بس
 
 ## 4) ثغرات ومعروفات — خطة من هنا
 
+0. **Git repo ✓ (تم 2026-08-25):** `https://github.com/jou1182/contech-ai-platform` (PRIVATE، حساب jou1182، فرع master).
+   - `.gitignore` يستثني: `.env*` (عدا الأمثلة)، قواعد البيانات `*.db/*.sqlite`، `uploads/`، `qdrant_data/qdrant_storage`، النسخ الاحتياطية، الفيديو.
+   - **روتين العمل من اليوم:** عدّل الكود → `git add -A && git commit -m "..."` → `git push` → ثم أعد بناء Docker إن كان التعديل يشغّل المنصة.
+   - أول commit: `b68dd35` — MVP كامل (314 ملفاً، 459KB نظيف بلا أسرار).
+
 1. **بناء الإنتاج على هذا الجهاز**: `next build` يصل "Compiled successfully" ثم يفشل في جمع بيانات الصفحات بسبب EISDIR/readlink عشوائي (مضاد فيروسات يقفل node_modules). الحلول الممكنة: استبعاد مجلد المشروع من الفحص الحي، أو البناء داخل Docker (يوجد `Dockerfile.backend` و`docker-compose.yml` وHelm charts جاهزة في `deploy/`).
 2. **الخادم القديم على :8000**: عملية uvicorn قديمة كانت تعمل قبل التحديث؛ المستخدم يشغلها يدوياً — ذكّرها بإعادة التشغيل لالتقاط النقاط الجديدة.
 3. **الرفع إلى Postgres/إنتاج**: `docker-compose.yml` موجود لكن غير مختبر هنا. `scripts/production_release.py` و`deploy/helm/` بانتظار المراجعة.
