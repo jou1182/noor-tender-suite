@@ -9,7 +9,7 @@ from app.core.crypto_vault import encrypt
 
 DEFAULT_PROVIDERS = [
     {"name": "Ollama (Local)", "provider_type": "ollama", "base_url": "http://host.docker.internal:11434/v1",
-     "model": "llama3.1:8b", "embedding_model": "nomic-embed-text", "enabled": False,
+     "model": "qwen3:4b", "embedding_model": "nomic-embed-text", "enabled": False,
      "is_default": False, "privacy_safe": True, "api_key": ""},
     {"name": "LM Studio (Local)", "provider_type": "lmstudio", "base_url": "http://host.docker.internal:1234/v1",
      "model": "", "embedding_model": "", "enabled": False, "is_default": False,

@@ -98,6 +98,9 @@ def preview_agent(agent_key: str, body: Dict[str, Any], db: Session = Depends(ge
 
     # 2) تركيب رسالة النظام من الهوية المجرَّبة + سياق العينة الاختيارية
     system_prompt = str(draft.get("system_prompt") or agent.system_prompt or "")
+    # موديلات qwen3 تفكر طويلاً قبل الجواب وقد تنفد max_tokens — نطلب إجابة مباشرة
+    if "/no_think" not in system_prompt:
+        system_prompt = f"{system_prompt}\n\n/no_think"
     user_text = message
     if sample_context:
         user_text = f"{message}\n\n--- عينة سياق من المستندات ---\n{sample_context}"

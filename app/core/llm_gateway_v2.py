@@ -172,7 +172,7 @@ PROVIDER_ADAPTERS = {
 
 
 def chat(provider, messages: List[Dict[str, str]], temperature: Optional[float] = None,
-         max_tokens: int = 2048, model_override: str = "") -> Dict[str, Any]:
+         max_tokens: int = 4096, model_override: str = "") -> Dict[str, Any]:
     """Route a chat completion to the provider's native protocol."""
     adapter = PROVIDER_ADAPTERS.get(provider.provider_type)
     if adapter is None:
