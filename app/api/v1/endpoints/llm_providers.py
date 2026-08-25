@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.crypto_vault import decrypt, encrypt, mask
 from app.core.llm_gateway_v2 import test_connection
+from app.core.provider_templates import LEGACY_TYPES, PROTOCOLS, list_templates
 from app.db.session import get_db
 from app.models.platform_models import LLMProvider
 
@@ -32,6 +33,21 @@ def _serialize(provider: LLMProvider, include_key: bool = False) -> Dict[str, An
     return data
 
 
+def _validate_type(provider_type: str) -> None:
+    """أي بروتوكول مدعوم يُقبل: الأنواع القديمة + openai_compatible الشامل."""
+    if provider_type not in PROTOCOLS and provider_type not in LEGACY_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"unsupported provider_type: {provider_type}. Allowed: {', '.join(sorted(set(PROTOCOLS) | set(LEGACY_TYPES)))}",
+        )
+
+
+@router.get("/templates")
+def get_templates():
+    """قوالب المزودين الجاهزة — تغذي واجهة الإضافة الديناميكية."""
+    return {"templates": list_templates()}
+
+
 @router.get("")
 def list_providers(db: Session = Depends(get_db)):
     providers = db.query(LLMProvider).order_by(LLMProvider.id).all()
@@ -43,8 +59,9 @@ def create_provider(body: Dict[str, Any], db: Session = Depends(get_db)):
     required = ("name", "provider_type")
     if not all(body.get(field) for field in required):
         raise HTTPException(status_code=422, detail="name and provider_type are required")
-    if body["provider_type"] not in ("openai", "anthropic", "google", "deepseek", "ollama", "lmstudio"):
-        raise HTTPException(status_code=422, detail="unsupported provider_type")
+    _validate_type(body["provider_type"])
+    if not (body.get("base_url") or "").strip():
+        raise HTTPException(status_code=422, detail="base_url is required")
 
     provider = LLMProvider(
         name=body["name"],
@@ -55,7 +72,7 @@ def create_provider(body: Dict[str, Any], db: Session = Depends(get_db)):
         embedding_model=body.get("embedding_model", ""),
         enabled=bool(body.get("enabled", False)),
         is_default=bool(body.get("is_default", False)),
-        privacy_safe=body.get("provider_type") in ("ollama", "lmstudio"),
+        privacy_safe=bool(body.get("privacy_safe", False)),
     )
     if provider.is_default:
         for other in db.query(LLMProvider).filter(LLMProvider.is_default.is_(True)):
@@ -76,8 +93,7 @@ def update_provider(provider_id: int, body: Dict[str, Any], db: Session = Depend
         if field in body:
             setattr(provider, field, body[field])
     if "provider_type" in body:
-        if body["provider_type"] not in ("openai", "anthropic", "google", "deepseek", "ollama", "lmstudio"):
-            raise HTTPException(status_code=422, detail="unsupported provider_type")
+        _validate_type(body["provider_type"])
         provider.provider_type = body["provider_type"]
     if "api_key" in body and body["api_key"]:
         provider.api_key_encrypted = encrypt(body["api_key"])

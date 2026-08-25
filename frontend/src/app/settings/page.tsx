@@ -2,15 +2,27 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ArrowLeft, PlugZap, RefreshCw, Bot, Loader2, ShieldCheck, Plus, Trash2,
-  Play, X, Sparkles, Lock,
+  ArrowLeft, PlugZap, RefreshCw, Bot, Loader2, Plus, Trash2,
+  Play, X, Sparkles, Lock, Zap, Server, Globe,
 } from 'lucide-react';
 import type {
-  AgentEntry, ConnectionTestResult, LLMProvider, ProviderType,
+  AgentEntry, ConnectionTestResult, LLMProvider,
 } from '../../types/platform';
-import { PROVIDER_META, ADD_FORM_DEFAULT } from '../../lib/provider_meta';
+import { ADD_FORM_DEFAULT } from '../../lib/provider_meta';
 
 const API = 'http://localhost:8000';
+
+/** قالب مزود — يأتي من GET /llm-providers/templates (ديناميكي بالكامل). */
+interface ProviderTemplate {
+  key: string;
+  name: string;
+  provider_type: string;
+  base_url: string;
+  privacy_safe: boolean;
+  needs_key: boolean;
+  hint: string;
+  models_hint: string;
+}
 
 type Tab = 'providers' | 'agents';
 
@@ -33,9 +45,10 @@ const draftFrom = (a: AgentEntry): AgentDraft => ({
 });
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>('agents');
+  const [tab, setTab] = useState<Tab>('providers');
   const [providers, setProviders] = useState<LLMProvider[]>([]);
   const [agents, setAgents] = useState<AgentEntry[]>([]);
+  const [templates, setTemplates] = useState<ProviderTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState<number | null>(null);
   const [testResults, setTestResults] = useState<Record<number, ConnectionTestResult>>({});
@@ -47,12 +60,14 @@ export default function SettingsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [pRes, aRes] = await Promise.all([
+      const [pRes, aRes, tRes] = await Promise.all([
         fetch(`${API}/api/v1/llm-providers`),
         fetch(`${API}/api/v1/agents`),
+        fetch(`${API}/api/v1/llm-providers/templates`),
       ]);
       setProviders((await pRes.json()).providers || []);
       setAgents((await aRes.json()).agents || []);
+      setTemplates((await tRes.json()).templates || []);
     } finally {
       setLoading(false);
     }
@@ -85,7 +100,7 @@ export default function SettingsPage() {
   };
 
   const addProvider = async () => {
-    if (!addForm.name) return;
+    if (!addForm.name || !addForm.base_url) return;
     await fetch(`${API}/api/v1/llm-providers`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...addForm, enabled: true }),
@@ -132,7 +147,7 @@ export default function SettingsPage() {
 
       <div className="max-w-[1200px] mx-auto px-4 md:px-6 pt-6">
         <div className="inline-flex rounded-xl bg-slate-900 p-1 gap-1 border border-slate-700">
-          {([['agents', 'Agent Registry & Training', Bot], ['providers', 'LLM Providers', PlugZap]] as const).map(([key, label, Icon]) => (
+          {([['providers', 'LLM Providers', PlugZap], ['agents', 'Agent Registry & Training', Bot]] as const).map(([key, label, Icon]) => (
             <button
               key={key}
               onClick={() => setTab(key as Tab)}
@@ -168,6 +183,7 @@ export default function SettingsPage() {
 
       {showAdd && (
         <AddProviderModal
+          templates={templates}
           form={addForm} setForm={setAddForm}
           onClose={() => setShowAdd(false)} onSubmit={addProvider}
         />
@@ -188,73 +204,96 @@ function ProvidersPanel(props: {
   onShowAdd: () => void;
 }) {
   const { providers, testResults, testing, onTest, onToggle, onDelete, onShowAdd } = props;
+  const local = providers.filter((p) => p.privacy_safe);
+  const cloud = providers.filter((p) => !p.privacy_safe);
+
+  const card = (provider: LLMProvider) => {
+    const result = testResults[provider.id];
+    return (
+      <div key={provider.id} className="bg-slate-900 rounded-xl border border-slate-700/70 shadow-sm p-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-black text-white">{provider.name}</h3>
+              {provider.privacy_safe && (
+                <span className="text-[9px] font-black uppercase tracking-wider bg-teal-500/15 text-teal-300 border border-teal-500/40 px-2 py-0.5 rounded-full">🔒 Private</span>
+              )}
+              {provider.is_default && (
+                <span className="text-[9px] font-black uppercase tracking-wider bg-blue-500/15 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded-full">Default</span>
+              )}
+              <span className="text-[9px] font-mono text-slate-600">{provider.provider_type}</span>
+            </div>
+            <p className="text-xs text-slate-400 font-mono mt-1 truncate">{provider.base_url} · {provider.model || 'no model'}</p>
+            {provider.has_api_key && <p className="text-[10px] text-slate-500 font-mono">key: {provider.api_key_masked}</p>}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => onToggle(provider)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${provider.enabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+              aria-label="Toggle enabled"
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${provider.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+            <button onClick={() => onTest(provider.id)} disabled={testing === provider.id}
+              className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 disabled:opacity-50">
+              {testing === provider.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
+              Test
+            </button>
+            <button onClick={() => onDelete(provider.id)}
+              className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-rose-500/40 text-rose-300 hover:bg-rose-500/10">
+              <Trash2 className="h-3 w-3" /> Delete
+            </button>
+          </div>
+        </div>
+        {result && (
+          <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${result.ok ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border-rose-500/40 bg-rose-500/10 text-rose-300'}`}>
+            {result.ok ? (
+              <span className="font-semibold">Connected in {result.latency_ms}ms — {result.models.length} models available{result.models.length ? `: ${result.models.slice(0, 5).join(', ')}` : ''}</span>
+            ) : (
+              <span className="font-semibold">Failed: {result.error || 'unreachable'}</span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-xs text-slate-400">
-          وجّه ذكاء الوكلاء عبر مزودين سحابيين أو اشتغل محلياً وخاصاً تماماً عبر Ollama / LM Studio.
+        <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
+          وجّه ذكاء الوكلاء عبر أي مزود في العالم: اختر قالباً جاهزاً (DeepSeek, Groq, OpenRouter, Together, Mistral, Claude, Gemini…) أو أضف
+          <span className="text-teal-300 font-bold"> مزوداً مخصصاً</span> بأي Base URL متوافق مع بروتوكول OpenAI.
         </p>
         <button onClick={onShowAdd}
-          className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-blue-600 text-white shadow disabled:opacity-50">
+          className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-blue-600 text-white shadow hover:from-teal-400 hover:to-blue-500 transition">
           <Plus className="h-4 w-4" /> Add Provider
         </button>
       </div>
+
       {providers.length === 0 && (
         <div className="bg-slate-900 rounded-xl border border-dashed border-slate-700 p-12 text-center">
-          <p className="text-sm font-semibold text-slate-400">لا يوجد مزودون بعد — أضف مزوداً لتبدأ.</p>
+          <p className="text-sm font-semibold text-slate-400">لا يوجد مزودون بعد — اضغط Add Provider لاختيار مزود من القوالب الجاهزة.</p>
         </div>
       )}
-      {providers.map((provider) => {
-        const meta = PROVIDER_META[provider.provider_type];
-        const result = testResults[provider.id];
-        return (
-          <div key={provider.id} className="bg-slate-900 rounded-xl border border-slate-700/70 shadow-sm p-5">
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-sm font-black text-white">{provider.name}</h3>
-                  {provider.privacy_safe && (
-                    <span className="text-[9px] font-black uppercase tracking-wider bg-teal-500/15 text-teal-300 border border-teal-500/40 px-2 py-0.5 rounded-full">🔒 Private</span>
-                  )}
-                  {provider.is_default && (
-                    <span className="text-[9px] font-black uppercase tracking-wider bg-blue-500/15 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded-full">Default</span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-400 font-mono mt-1 truncate">{provider.base_url} · {provider.model || 'no model'}</p>
-                {provider.has_api_key && <p className="text-[10px] text-slate-500 font-mono">key: {provider.api_key_masked}</p>}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => onToggle(provider)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${provider.enabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
-                  aria-label="Toggle enabled"
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${provider.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-                <button onClick={() => onTest(provider.id)} disabled={testing === provider.id}
-                  className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 disabled:opacity-50">
-                  {testing === provider.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
-                  Test
-                </button>
-                <button onClick={() => onDelete(provider.id)}
-                  className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-rose-500/40 text-rose-300 hover:bg-rose-500/10">
-                  <Trash2 className="h-3 w-3" /> Delete
-                </button>
-              </div>
-            </div>
-            {result && (
-              <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${result.ok ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border-rose-500/40 bg-rose-500/10 text-rose-300'}`}>
-                {result.ok ? (
-                  <span className="font-semibold">Connected in {result.latency_ms}ms — {result.models.length} models available{result.models.length ? `: ${result.models.slice(0, 5).join(', ')}` : ''}</span>
-                ) : (
-                  <span className="font-semibold">Failed: {result.error || 'unreachable'}</span>
-                )}
-              </div>
-            )}
-            <p className="mt-2 text-[10px] text-slate-500 uppercase tracking-wider font-bold">{meta?.label || provider.provider_type}</p>
-          </div>
-        );
-      })}
+
+      {local.length > 0 && (
+        <section className="space-y-3">
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-teal-400 flex items-center gap-1.5">
+            <Server className="h-3.5 w-3.5" /> Local &amp; Private — البيانات لا تخرج من جهازك
+          </h4>
+          {local.map(card)}
+        </section>
+      )}
+
+      {cloud.length > 0 && (
+        <section className="space-y-3">
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-sky-400 flex items-center gap-1.5">
+            <Globe className="h-3.5 w-3.5" /> Cloud Providers — عبر API
+          </h4>
+          {cloud.map(card)}
+        </section>
+      )}
     </div>
   );
 }
@@ -335,7 +374,7 @@ function AgentCard(props: {
           />
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              {/* الاسم الإنجليزي — الآن قابل للتعديل أيضاً */}
+              {/* الاسم الإنجليزي — قابل للتعديل أيضاً */}
               <input
                 value={draft.name_en}
                 onChange={(e) => edit({ name_en: e.target.value })}
@@ -411,7 +450,7 @@ function AgentCard(props: {
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Model Override</span>
           <input value={draft.model_override}
             onChange={(e) => edit({ model_override: e.target.value })}
-            placeholder="e.g. qwen2.5:14b"
+            placeholder="e.g. deepseek-chat / gpt-4o-mini"
             className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-teal-500" />
         </label>
         <label className="block">
@@ -500,7 +539,7 @@ function AgentCard(props: {
             </div>
           )}
           {preview.error && (
-            <p className="mt-2 text-xs text-rose-300 font-semibold">{preview.error}</p>
+            <p className="mt-2 text-xs text-rose-300 font-semibold" dir="auto">{preview.error}</p>
           )}
         </div>
       )}
@@ -553,61 +592,113 @@ function useAgentPreview(agent: AgentEntry, draft: AgentDraft) {
 /* ============================ Add provider ============================ */
 
 function AddProviderModal(props: {
+  templates: ProviderTemplate[];
   form: typeof ADD_FORM_DEFAULT;
   setForm: (f: typeof ADD_FORM_DEFAULT) => void;
   onClose: () => void;
   onSubmit: () => void;
 }) {
-  const { form, setForm, onClose, onSubmit } = props;
+  const { templates, form, setForm, onClose, onSubmit } = props;
+  const [selectedKey, setSelectedKey] = useState<string>('');
+
+  const applyTemplate = (t: ProviderTemplate) => {
+    setSelectedKey(t.key);
+    setForm({
+      name: t.key === 'custom' ? '' : t.name,
+      provider_type: t.provider_type as typeof ADD_FORM_DEFAULT.provider_type,
+      base_url: t.base_url,
+      model: t.key === 'custom' ? '' : t.models_hint,
+      api_key: '',
+      embedding_model: '',
+    });
+  };
+
+  const selected = templates.find((t) => t.key === selectedKey);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-700">
-        <div className="px-6 py-4 border-b border-slate-700 bg-slate-900">
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-900 rounded-2xl shadow-2xl border border-slate-700">
+        <div className="px-6 py-4 border-b border-slate-700 sticky top-0 bg-slate-900 z-10">
           <h2 className="text-lg font-bold text-white flex items-center gap-2"><PlugZap className="h-5 w-5 text-teal-400" /> Add LLM Provider</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Cloud APIs or local Ollama / LM Studio — encrypted at rest.</p>
+          <p className="text-xs text-slate-400 mt-0.5">اختر مزوداً جاهزاً من القوالب، أو أضف أي مزود عالمي بـ Base URL مخصص.</p>
         </div>
-        <div className="p-6 space-y-4">
+
+        <div className="p-6 space-y-5">
+          {/* Template picker */}
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">1 — اختر المزود</span>
+            <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
+              {templates.map((t) => (
+                <button key={t.key} onClick={() => applyTemplate(t)}
+                  className={`text-right p-3 rounded-xl border transition ${
+                    selectedKey === t.key
+                      ? 'border-teal-500 bg-teal-500/10 shadow-lg shadow-teal-500/10'
+                      : 'border-slate-700 bg-slate-950/40 hover:border-slate-500'
+                  }`}>
+                  <span className="flex items-center gap-1.5 text-sm font-bold text-white">
+                    {t.privacy_safe ? <Lock className="h-3.5 w-3.5 text-teal-400" /> : <Globe className="h-3.5 w-3.5 text-sky-400" />}
+                    {t.name}
+                  </span>
+                  {t.privacy_safe && <span className="block text-[9px] text-teal-400 font-black uppercase mt-1">🔒 محلي وخاص</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Hint */}
+          {selected && (
+            <div className="rounded-lg border border-teal-500/30 bg-teal-500/5 px-3 py-2 text-xs text-teal-200 leading-relaxed" dir="rtl">
+              💡 {selected.hint}
+            </div>
+          )}
+
+          {/* Form fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Display Name</span>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ollama — Llama 3.1" className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">2 — Display Name</span>
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="مثال: DeepSeek — حساب الشركة"
+                className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" />
             </label>
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Provider Type</span>
-              <select value={form.provider_type}
-                onChange={(e) => {
-                  const type = e.target.value as ProviderType;
-                  setForm({ ...form, provider_type: type, base_url: PROVIDER_META[type].defaultUrl });
-                }}
-                className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-                {Object.entries(PROVIDER_META).map(([key, meta]) => (
-                  <option key={key} value={key}>{meta.label}{meta.privacy ? ' · 🔒 local' : ''}</option>
-                ))}
-              </select>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Protocol</span>
+              <input value={form.provider_type} disabled
+                className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-400 font-mono" />
             </label>
             <label className="block md:col-span-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Base URL</span>
-              <input value={form.base_url} onChange={(e) => setForm({ ...form, base_url: e.target.value })} className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Base URL {selectedKey === 'custom' && '(إجباري — من مزودك)'}</span>
+              <input value={form.base_url} onChange={(e) => setForm({ ...form, base_url: e.target.value })}
+                readOnly={selectedKey !== '' && selectedKey !== 'custom'}
+                className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono disabled:text-slate-400" />
             </label>
             <label className="block">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Chat Model</span>
-              <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="llama3.1:8b / gpt-4o-mini" className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono" />
+              <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })}
+                placeholder={selected?.models_hint || 'model-name'}
+                className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono" />
             </label>
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Embedding Model (RAG)</span>
-              <input value={form.embedding_model} onChange={(e) => setForm({ ...form, embedding_model: e.target.value })} placeholder="nomic-embed-text" className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Embedding Model (اختياري — للبحث RAG)</span>
+              <input value={form.embedding_model} onChange={(e) => setForm({ ...form, embedding_model: e.target.value })}
+                placeholder="text-embedding-3-small / nomic-embed-text"
+                className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono" />
             </label>
             <label className="block md:col-span-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1"><Lock className="h-3 w-3" /> API Key (encrypted at rest)</span>
-              <input value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} placeholder="sk-… (empty for local providers)" type="password" className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1">
+                <Lock className="h-3 w-3" /> API Key {selected && !selected.needs_key && '(غير مطلوب للمزودين المحليين)'}
+              </span>
+              <input value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })}
+                placeholder={selected && !selected.needs_key ? '— لا حاجة لمفتاح —' : 'sk-…'}
+                type="password"
+                className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono" />
             </label>
           </div>
+
           <div className="flex items-center justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800 rounded-lg">Cancel</button>
-            <button onClick={onSubmit} disabled={!form.name}
-              className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-teal-500 to-blue-600 disabled:opacity-40">
-              Add & Enable
+            <button onClick={onSubmit} disabled={!form.name || !form.base_url}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-teal-500 to-blue-600 disabled:opacity-40">
+              <Zap className="h-4 w-4" /> Add & Enable
             </button>
           </div>
         </div>

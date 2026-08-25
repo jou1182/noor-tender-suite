@@ -166,6 +166,7 @@ PROVIDER_ADAPTERS = {
     "deepseek": _chat_openai_compatible,
     "ollama": _chat_openai_compatible,
     "lmstudio": _chat_openai_compatible,
+    "openai_compatible": _chat_openai_compatible,  # أي مزود يتبع بروتوكول OpenAI (Groq, OpenRouter, Together, Mistral, vLLM...)
     "anthropic": _chat_anthropic,
     "google": _chat_gemini,
 }
@@ -198,7 +199,7 @@ def embed(provider, text: str) -> Optional[List[float]]:
             if status == 200 and body.get("embedding"):
                 return body["embedding"]
             return None
-        if provider.provider_type in ("openai", "deepseek", "lmstudio"):
+        if provider.provider_type in ("openai", "deepseek", "lmstudio", "openai_compatible"):
             url = f"{_base(provider)}/embeddings"
             status, body = _http_json("POST", url, _auth_headers(provider), {"model": model, "input": text})
             if status == 200:
@@ -222,7 +223,7 @@ def test_connection(provider) -> Dict[str, Any]:
             models = [m.get("name", "") for m in body.get("models", [])]
             latency = int((time.time() - started) * 1000)
             return {"ok": status == 200, "latency_ms": latency, "models": models}
-        if ptype in ("openai", "deepseek", "lmstudio"):
+        if ptype in ("openai", "deepseek", "lmstudio", "openai_compatible"):
             status, body = _http_json("GET", f"{base}/models", _auth_headers(provider, json_content=False), timeout=15)
             models = [m.get("id", "") for m in body.get("data", [])][:40]
             latency = int((time.time() - started) * 1000)
