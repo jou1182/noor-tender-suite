@@ -1,0 +1,7 @@
+%T	TASK
+%F	task_id	task_name
+%R	1	Design
+%R	2	Build
+%T	TASKPRED
+%F	pred_task_id	succ_task_id
+%R	1	2

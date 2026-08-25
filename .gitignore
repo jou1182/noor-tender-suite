@@ -1,0 +1,78 @@
+# ============================================================
+# ConTech AI Platform — .gitignore
+# يحمي الأسرار والبيانات الضخمة من الرفع إلى GitHub
+# ============================================================
+
+# ---------- Secrets / Environment ----------
+.env
+.env.*
+!.env.example
+!.env.docker.example
+*.key
+*.pem
+*.p12
+
+# ---------- Databases (بيانات العملاء الحقيقية) ----------
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+contech.db*
+tender_db.sqlite*
+test_stress.db*
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# ---------- Node / Next.js ----------
+node_modules/
+.next/
+out/
+npm-debug.log*
+tsconfig.tsbuildinfo
+
+# ---------- Vector stores & heavy data (تُعاد بناؤها) ----------
+qdrant_data/
+qdrant_storage/
+
+# ---------- Uploads (ملفات المنافسات — سرية) ----------
+uploads/
+!uploads/.gitkeep
+
+# ---------- Backups & restore artifacts ----------
+backups/
+restore_test/
+
+# ---------- Media & large binaries ----------
+*.mp4
+*.mov
+*.avi
+*.zip
+*.rar
+!deploy/**/*.zip
+
+# ---------- OS / Editor ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# ---------- Hermes / local tooling ----------
+.remember/
+.commandcode/
+scratch/
+
+# ---------- Misc project-local ----------
+*.url
+home.html

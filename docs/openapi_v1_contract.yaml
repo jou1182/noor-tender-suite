@@ -1,0 +1,82 @@
+openapi: 3.1.0
+info:
+  title: ConTech AI Platform API
+  version: 1.0.0
+  description: Enterprise REST API for automated infrastructure tender auditing.
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+paths:
+  /api/v1/audits/{tender_id}/trigger:
+    post:
+      summary: Trigger Full Tender Audit
+      description: Uploads tender documents (RFP, XER, etc.) and initiates the background LangGraph multi-agent workflow.
+      parameters:
+        - name: tender_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                rfp_files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                schedule_file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Audit background job started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  tender_id:
+                    type: integer
+  /api/v1/audits/{tender_id}:
+    get:
+      summary: Get Audit Status & Results
+      description: Polls the current state of the audit, retrieving compliance records and the technical score upon completion.
+      parameters:
+        - name: tender_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tender status retrieved
+  /api/v1/audits/{tender_id}/export:
+    get:
+      summary: Download Compliance Matrix
+      description: Downloads the dynamically generated Excel report with conditional formatting.
+      responses:
+        '200':
+          description: Excel file stream
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+  /api/v1/telemetry/stream:
+    get:
+      summary: Live Execution Telemetry
+      description: Subscribes to Server-Sent Events (SSE) streaming live logs of agent execution.
+      responses:
+        '200':
+          description: SSE text/event-stream
+          content:
+            text/event-stream:
+              schema:
+                type: string

@@ -1,0 +1,38 @@
+# Global configuration overrides for ConTech K8s Deployments
+global:
+  environment: production
+
+frontend:
+  replicaCount: 2
+  image: "contech/frontend:v1.0"
+  service:
+    type: ClusterIP
+    port: 80
+
+backend:
+  replicaCount: 3
+  image: "contech/backend:v1.0"
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "4000m"
+      memory: "8Gi"
+
+database:
+  user: admin
+  password: supersecretpassword
+  dbName: tender_db
+  storage: 50Gi
+
+qdrant:
+  image: "qdrant/qdrant:v1.9.0"
+  storage: 100Gi
+
+ingress:
+  enabled: true
+  host: contech.alrawaf.local
