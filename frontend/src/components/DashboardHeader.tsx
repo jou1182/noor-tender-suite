@@ -78,6 +78,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
   // - القائمة نفسها (كل المشاريع) تبقى دائماً من قاعدة البيانات
   useEffect(() => {
     if (loadingList) return;
+    // بعد «بدء من جديد» (tenant.id='') نبقى في وضع فارغ — لا اختيار تلقائي
+    if (tenant.id === '') return;
     const savedId = typeof window !== 'undefined' ? sessionStorage.getItem('contech.activeTenderId') : null;
     if (savedId) {
       const saved = tenants.find((t) => String(t.id) === savedId);
@@ -168,6 +170,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
   };
 
   const activeTender = tenants.find((t) => String(t.id) === tenant.id);
+  const isBlank = tenant.id === '';
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-700/60 shadow-lg">

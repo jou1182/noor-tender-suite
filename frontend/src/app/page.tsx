@@ -65,7 +65,7 @@ const STUDIO_TABS: { key: StudioTab; label: string; icon: React.ElementType }[] 
 ];
 
 export default function Dashboard() {
-  const [tenderId, setTenderId] = useState<number>(1);
+  const [tenderId, setTenderId] = useState<number | null>(null);
   const [swarmRun, setSwarmRun] = useState(0);
   // epoch الجلسة: يتزايد عند «بدء من جديد» — يعيد تهيئة كل مكونات الشاشة
   const [sessionEpoch, setSessionEpoch] = useState(0);
@@ -75,7 +75,7 @@ export default function Dashboard() {
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
 
-  const { status, score, redTeamData, records: auditRecords } = useTenderAudit(tenderId, tenant);
+  const { status, score, redTeamData, records: auditRecords } = useTenderAudit(tenderId ?? 0, tenant);
 
   // لوحة القيادة الحية — تُحدّث مع كل تغيير في حالة التدقيق
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
@@ -96,28 +96,27 @@ export default function Dashboard() {
     if (!Number.isNaN(idNum)) setTenderId(idNum);
   }, [tenant.id]);
 
-  // «بدء من جديد»: تصفير كامل لحالة الجلسة + إعادة تحميل بيانات المنافسة الحالية
+  // «بدء من جديد»: مساحة عمل فارغة تماماً — بلا منافسة نشطة، كأنك فتحت المنصة للتو
   useEffect(() => {
     const onReset = () => {
       setSessionEpoch((e) => e + 1);
       setSwarmRun(0);
       setLaunchError(null);
-      // إعادة جلب حالة المنافسة الحالية بعد التصفير
-      if (tenderId) {
-        // إجبار useTenderAudit على إعادة الجلب عبر تغيير طفيف مؤجل
-        setTimeout(() => setSwarmRun((v) => v), 0);
-      }
+      setTenant({ id: '', name: 'Workspace', project: '', phase: 'Draft', role: 'Lead Architect' });
+      setTenderId(null);
+      setActiveTab('compliance');
     };
     window.addEventListener('contech.session-reset', onReset);
     return () => window.removeEventListener('contech.session-reset', onReset);
-  }, [tenderId]);
+  }, []);
 
   const handleLaunchSwarm = async () => {
     if (launching) return;
     setLaunching(true);
     setLaunchError(null);
     try {
-      await launchTenderSwarm(tenderId);
+      if (!tenderId) return;
+    await launchTenderSwarm(tenderId);
       setSwarmRun((r) => r + 1);
     } catch (e) {
       setLaunchError(e instanceof Error ? e.message : 'تعذر إطلاق السرب.');
@@ -148,7 +147,7 @@ export default function Dashboard() {
   const renderStudio = () => {
     switch (activeTab) {
       case 'compliance':
-        return <RfpComplianceMatrixStudio records={complianceRecords} tenderId={tenderId} />;
+        return <RfpComplianceMatrixStudio records={complianceRecords} tenderId={tenderId ?? undefined} />;
       case 'submittal':
         return <SubmittalReviewStudio data={redTeamData?.submittal_output ?? demoSubmittalData} />;
       case 'value_engineering':
@@ -211,11 +210,20 @@ export default function Dashboard() {
         )}
 
         <section className="space-y-4">
-          <DocumentLibrary key={`dl-${tenderId}-${sessionEpoch}`} tenderId={tenderId} />
+          {tenderId ? (
+            <DocumentLibrary key={`dl-${tenderId}-${sessionEpoch}`} tenderId={tenderId} />
+          ) : (
+            <div className="rounded-lg border-2 border-dashed border-slate-700 bg-slate-900/40 p-10 text-center">
+              <p className="text-sm font-bold text-slate-300">لا توجد منافسة نشطة</p>
+              <p className="text-xs text-slate-500 mt-1">اختر منافسة من القائمة العلوية، أو ارفع كراسة جديدة للبدء.</p>
+            </div>
+          )}
         </section>
 
         <section className="space-y-4">
-          <ProposalDraftingStudio key={`pd-${tenderId}-${sessionEpoch}`} tenderId={tenderId} />
+          {tenderId && (
+            <ProposalDraftingStudio key={`pd-${tenderId}-${sessionEpoch}`} tenderId={tenderId} />
+          )}
         </section>
 
         <section className="space-y-4">

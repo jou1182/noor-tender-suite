@@ -61,6 +61,13 @@ export function useTenderAudit(tenderId: number, tenant: TenantContext) {
   const [redTeamData, setRedTeamData] = useState<AuditMetadata | null>(null);
 
   const pollStatus = useCallback(async () => {
+    if (!tenderId || tenderId <= 0) {
+      setStatus('idle');
+      setScore(null);
+      setRecords([]);
+      setRedTeamData(null);
+      return;
+    }
     try {
       const data = await fetchTenderStatus(tenderId, tenant);
       if (!data) return;
