@@ -98,6 +98,9 @@ app.include_router(tenders_module.router, prefix="/api/v1/tenders", tags=["tende
 from app.api.v1.endpoints import analytics as analytics_module
 app.include_router(analytics_module.router, prefix="/api/v1/analytics", tags=["analytics"])
 
+from app.api.v1.endpoints import proposal_evaluation as proposal_evaluation_module
+app.include_router(proposal_evaluation_module.router, prefix="/api/v1/proposal-evaluation", tags=["proposal-evaluation"])
+
 from app.db.base import Base
 from app.db.session import engine
 

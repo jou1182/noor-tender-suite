@@ -45,7 +45,7 @@ export interface AgentEntry {
 
 export type DocumentCategory =
   | 'EVALUATION_CRITERIA' | 'SPECIFICATIONS' | 'BOQ' | 'DRAWINGS'
-  | 'FORMS' | 'ADDENDUM' | 'CONTRACT' | 'OTHER';
+  | 'FORMS' | 'ADDENDUM' | 'CONTRACT' | 'PROPOSAL' | 'OTHER';
 
 export type DocumentStatus = 'REGISTERED' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
 

@@ -50,8 +50,12 @@ DEFAULT_MANDATES = [
 ]
 
 
+# حروف عربية + لاتينية + أرقام — المحرك ثنائي اللغة
+_TOKEN_RE = re.compile(r"[a-z0-9؀-ۿ]{3,}")
+
 def _tokens(text: str) -> set:
-    return set(re.findall(r"[a-z0-9]+", text.lower()))
+    """تقسيم النص إلى توكنز: يدعم العربية والإنجليزية (3+ أحرف)."""
+    return set(t.lower() for t in _TOKEN_RE.findall(text.lower()))
 
 
 def _semantic_overlap(mandate_keywords: List[str], section_text: str) -> float:
@@ -81,7 +85,11 @@ class BidVsRFPEvaluator:
             if not line or not re.match(r"^(?:\d+\.?|M-\d+|Clause)", line, re.IGNORECASE):
                 continue
             idx += 1
-            keywords = [w for w in re.findall(r"[a-z]{4,}", line.lower())][:8]
+            # كلمات مفتاحية ثنائية اللغة: عربي (4+ أحرف) وإنجليزي (4+ أحرف)
+            raw_words = re.findall(r"[a-z؀-ۿ]{4,}", line.lower())
+            stopwords = {"يجب", "يكون", "معايير", "تقييم", "العروض", "الفنية", "الوزن",
+                         "about", "that", "with", "this", "from", "shall", "must", "have"}
+            keywords = [w for w in raw_words if w not in stopwords][:8]
             category = "LEGAL" if re.search(r"certificat|registration|guarantee|legal", line, re.I) else "TECHNICAL"
             mandates.append(
                 RFPClauseMandate(
@@ -89,7 +97,15 @@ class BidVsRFPEvaluator:
                     keywords=keywords or ["requirement"], weight=10.0,
                 )
             )
-        return mandates
+        # دمج البنود المكررة (chunking قد يقسم البند الواحد أو يكرره)
+        seen: set = set()
+        unique: List[RFPClauseMandate] = []
+        for m in mandates:
+            key = re.sub(r"\s+", " ", m.requirement.strip())[:120]
+            if key not in seen:
+                seen.add(key)
+                unique.append(m)
+        return unique
 
     @staticmethod
     def parse_proposal_sections(proposal_text: str) -> List[Dict[str, str]]:
@@ -109,14 +125,20 @@ class BidVsRFPEvaluator:
 
     @staticmethod
     def _required_years(mandate: RFPClauseMandate) -> Optional[int]:
-        match = re.search(r"(\d+)\+?\s*years", mandate.requirement, re.IGNORECASE)
+        match = re.search(
+            r"(\d+)\+?\s*(?:years?|سنة|سنوات|عام\s*أ|عاماً)",
+            mandate.requirement, re.IGNORECASE,
+        )
         return int(match.group(1)) if match else None
 
     @staticmethod
     def _claimed_max_years(sections: List[Dict[str, str]]) -> Optional[int]:
         best: Optional[int] = None
         for section in sections:
-            for match in re.finditer(r"(\d+)\+?\s*years", section.get("text", ""), re.IGNORECASE):
+            for match in re.finditer(
+                r"(\d+)\+?\s*(?:years?|سنة|سنوات|عام)",
+                section.get("text", ""), re.IGNORECASE,
+            ):
                 years = int(match.group(1))
                 if best is None or years > best:
                     best = years
@@ -142,8 +164,9 @@ class BidVsRFPEvaluator:
                     best_section = section["title"]
                     best_hits = [kw for kw in mandate.keywords if kw in _tokens(section["text"])]
 
-            addressed = best_sim >= 0.5
-            depth = "FULL" if best_sim >= 0.8 else ("PARTIAL" if addressed else "NONE")
+            addressed = best_sim >= 0.4
+            # العربية أغنى بالتصريف والتعريف — عتبة FULL أقل من الإنجليزية
+            depth = "FULL" if best_sim >= 0.6 else ("PARTIAL" if addressed else "NONE")
 
             # Experience gate: claimed years must meet the mandated minimum.
             required_years = BidVsRFPEvaluator._required_years(mandate)

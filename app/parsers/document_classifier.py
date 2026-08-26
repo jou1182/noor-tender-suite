@@ -67,6 +67,17 @@ CATEGORY_SIGNALS: Dict[str, List[Tuple[str, float]]] = {
         (r"\bcontract\b(?!or)", 2.0),
         (r"conditions\s+of\s+contract", 3.5),
     ],
+    # العرض الفني الوارد من فريق العمل — يُقيَّم ضد معايير المنافسة
+    "PROPOSAL": [
+        (r"العرض\s*الفني", 4.0),
+        (r"technical\s+proposal", 4.0),
+        (r"عرضنا\s*الفني|عرض\s*الفريق", 3.5),
+        (r"منهجية\s*التنفيذ", 2.5),
+        (r"method\s+statement", 2.0),
+        (r"سيرتنا\s*الذاتية|الخبرات\s*السابقة", 2.5),
+        (r"company\s+profile", 1.5),
+        (r"برنامج\s*التنفيذ", 2.0),
+    ],
 }
 
 # Filename-only boosters (checked against the filename, stronger weight).
@@ -77,6 +88,7 @@ FILENAME_SIGNALS: Dict[str, List[Tuple[str, float]]] = {
     "DRAWINGS": [(r"drawing|dwg|dxf|مخطط|لوح", 3.0)],
     "ADDENDUM": [(r"addend|ملحق", 3.5)],
     "FORMS": [(r"form|نموذج|استمارة", 2.5)],
+    "PROPOSAL": [(r"عرض\s*فني|proposal|عرضنا", 3.5)],
 }
 
 DEFAULT_CATEGORY = "OTHER"

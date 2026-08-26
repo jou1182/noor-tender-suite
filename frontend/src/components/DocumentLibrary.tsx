@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FolderSearch, UploadCloud, FileText, Loader2, MapPin, Pin,
   Search, CheckCircle, XCircle, FileWarning, Boxes, Database, Trash2, CheckCircle2,
+  ClipboardCheck, TrendingUp, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import type { RagCitation, TenderDocumentItem } from '../types/platform';
 
@@ -17,6 +18,7 @@ const CATEGORY_META: Record<string, { label: string; cls: string }> = {
   FORMS: { label: 'Forms', cls: 'bg-sky-500/15 text-sky-300 border-sky-500/40' },
   ADDENDUM: { label: 'Addendum', cls: 'bg-orange-500/15 text-orange-300 border-orange-500/40' },
   CONTRACT: { label: 'Contract', cls: 'bg-teal-500/15 text-teal-300 border-teal-500/40' },
+  PROPOSAL: { label: '⭐ Our Proposal', cls: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/40' },
   OTHER: { label: 'Other', cls: 'bg-slate-500/15 text-slate-300 border-slate-500/40' },
 };
 
@@ -27,10 +29,27 @@ const STATUS_META: Record<string, { icon: React.ElementType; cls: string }> = {
   REGISTERED: { icon: FileText, cls: 'text-slate-400' },
 };
 
+/** نتيجة تقييم العرض الفني */
+interface ProposalEval {
+  score: number;
+  addressed: number;
+  total: number;
+  summary: string;
+  strengths: Array<{ clause_id: string; section: string; similarity: number }>;
+  weaknesses: Array<{ clause_id: string; description: string; penalty_points: number }>;
+  partial_coverage: Array<{ clause_id: string; similarity: number }>;
+}
+
+interface UploadState {
+  name: string;
+  progress: number;   // 0-100 (نسبة البايتات المرسلة)
+  phase: 'uploading' | 'queued';
+}
+
 export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) => {
   const [documents, setDocuments] = useState<TenderDocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [uploads, setUploads] = useState<Record<string, UploadState>>({});
   const [scanFolder, setScanFolder] = useState('');
   const [scanBusy, setScanBusy] = useState(false);
   const [showScan, setShowScan] = useState(false);
@@ -38,6 +57,11 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
   const [question, setQuestion] = useState('');
   const [citations, setCitations] = useState<RagCitation[]>([]);
   const [asking, setAsking] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [evaluation, setEvaluation] = useState<ProposalEval | null>(null);
+  const [evaluating, setEvaluating] = useState(false);
+  const [evalError, setEvalError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -47,6 +71,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
       setDocuments(data.documents || []);
       const pinnedDoc = (data.documents || []).find((d: TenderDocumentItem) => d.is_pinned_criteria);
       setPinned(pinnedDoc ? pinnedDoc.id : null);
+      return data.documents as TenderDocumentItem[];
     } finally {
       setLoading(false);
     }
@@ -54,24 +79,46 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
 
   useEffect(() => { load(); }, [load]);
 
+  // استطلاع دوري طالما هناك ملفات قيد المعالجة (المعالجة الآن في الخلفية)
+  useEffect(() => {
+    const anyProcessing = documents.some((d) => d.status === 'PROCESSING' || d.status === 'REGISTERED');
+    if (!anyProcessing) return;
+    const t = setInterval(() => load(), 2500);
+    return () => clearInterval(t);
+  }, [documents, load]);
+
+  /** رفع متوازٍ مع تتبع تقدم لكل ملف — دفعات من 3 لتفادي إغراق الخادم */
   const uploadFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    setUploading(true);
-    try {
-      for (const file of Array.from(files)) {
-        const form = new FormData();
-        form.append('file', file);
-        try {
-          await fetch(`${API}/api/v1/documents/upload?tender_id=${tenderId}&ocr_enabled=true`, {
-            method: 'POST', body: form,
-          });
-        } catch { /* continue with remaining files */ }
-      }
-      await load();
-    } finally {
-      setUploading(false);
-      if (fileInput.current) fileInput.current.value = '';
+    const list = Array.from(files);
+
+    const uploadOne = (file: File) => new Promise<void>((resolve) => {
+      const form = new FormData();
+      form.append('file', file);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API}/api/v1/documents/upload?tender_id=${tenderId}&ocr_enabled=true`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          setUploads((prev) => ({ ...prev, [file.name]: { name: file.name, progress: pct, phase: 'uploading' } }));
+        }
+      };
+      xhr.onload = () => {
+        setUploads((prev) => ({ ...prev, [file.name]: { name: file.name, progress: 100, phase: 'queued' } }));
+        resolve();
+      };
+      xhr.onerror = () => resolve();
+      xhr.send(form);
+    });
+
+    // دفعات متوازية (3 في نفس الوقت)
+    for (let i = 0; i < list.length; i += 3) {
+      await Promise.all(list.slice(i, i + 3).map(uploadOne));
     }
+    // نظّف قائمة التقدم بعد استقرار قصير
+    setTimeout(() => setUploads({}), 1500);
+    await load();
+    if (fileInput.current) fileInput.current.value = '';
   };
 
   const scanServerFolder = async () => {
@@ -99,9 +146,6 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
     await load();
   };
 
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-  const [deleting, setDeleting] = useState<number | null>(null);
-
   const deleteDoc = async (docId: number) => {
     setDeleting(docId);
     try {
@@ -128,8 +172,30 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
     }
   };
 
+  /** تقييم العرض الفني ضد معايير المنافسة */
+  const evaluateProposal = async () => {
+    setEvaluating(true);
+    setEvalError('');
+    setEvaluation(null);
+    try {
+      const res = await fetch(`${API}/api/v1/proposal-evaluation/evaluate`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tender_id: tenderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      setEvaluation(data);
+    } catch (e) {
+      setEvalError(e instanceof Error ? e.message : 'فشل التقييم');
+    } finally {
+      setEvaluating(false);
+    }
+  };
+
   const processed = documents.filter((d) => d.status === 'PROCESSED').length;
   const criteriaFound = documents.filter((d) => d.doc_category === 'EVALUATION_CRITERIA').length;
+  const proposalDocs = documents.filter((d) => d.doc_category === 'PROPOSAL');
+  const processingCount = documents.filter((d) => d.status === 'PROCESSING' || d.status === 'REGISTERED').length;
 
   return (
     <div className="rounded-lg shadow-2xl border bg-slate-900 border-slate-700 p-5 space-y-5 text-slate-100">
@@ -143,25 +209,50 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
             <p className="text-xs text-slate-400">
               <span className="font-mono font-bold text-teal-300">{documents.length}</span> files ·
               <span className="font-mono font-bold text-emerald-300"> {processed}</span> processed ·
-              <span className="font-mono font-bold text-amber-300"> {criteriaFound}</span> criteria candidates
+              <span className="font-mono font-bold text-amber-300"> {criteriaFound}</span> criteria ·
+              <span className="font-mono font-bold text-fuchsia-300"> {proposalDocs.length}</span> proposal
+              {processingCount > 0 && (
+                <span className="text-cyan-300"> · {processingCount} processing in background…</span>
+              )}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowScan(!showScan)}
             className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 transition">
             <FolderSearch className="h-4 w-4" /> Scan Server Folder
           </button>
-          <button onClick={() => fileInput.current?.click()} disabled={uploading}
+          {/* رفع إضافي — يضيف للقائمة دون مسح الموجود */}
+          <button onClick={() => fileInput.current?.click()}
+            title="أضف ملفات إضافية (كراسة إضافية، ملاحق، أو العرض الفني) — تُضاف للقائمة الحالية"
             className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-blue-600 text-white shadow disabled:opacity-50">
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-            {uploading ? 'Uploading…' : 'Upload Files'}
+            <UploadCloud className="h-4 w-4" />
+            Upload Files
           </button>
           <input ref={fileInput} type="file" multiple hidden
             accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.md,.csv,.dxf,.dwg,.zip"
             onChange={(e) => uploadFiles(e.target.files)} />
         </div>
       </div>
+
+      {/* أشرطة تقدم الرفع */}
+      {Object.keys(uploads).length > 0 && (
+        <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 space-y-2">
+          {Object.values(uploads).map((u) => (
+            <div key={u.name} className="flex items-center gap-2">
+              <FileText className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+              <span className="text-xs text-slate-300 truncate flex-1 max-w-[300px]">{u.name}</span>
+              <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden min-w-[80px]">
+                <div className="h-full bg-gradient-to-r from-teal-500 to-blue-500 rounded-full transition-all"
+                  style={{ width: `${u.progress}%` }} />
+              </div>
+              <span className="text-[10px] font-mono text-slate-500 w-16 text-right">
+                {u.phase === 'queued' ? 'queued ✓' : `${u.progress}%`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showScan && (
         <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-4 flex flex-col md:flex-row gap-3 items-stretch">
@@ -176,6 +267,99 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
         </div>
       )}
 
+      {/* لوحة تقييم العرض الفني */}
+      {(proposalDocs.length > 0 || evaluation) && (
+        <div className="rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/5 p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-[11px] font-black uppercase tracking-widest text-fuchsia-300 flex items-center gap-1.5">
+              <ClipboardCheck className="h-4 w-4" />
+              تقييم العرض الفني ضد معايير المنافسة
+              {proposalDocs.length > 0 && (
+                <span className="normal-case text-slate-400">({proposalDocs.length} ملف عرض)</span>
+              )}
+            </p>
+            <button onClick={evaluateProposal} disabled={evaluating || processed === 0}
+              title="يحلل العرض الفني ويقارنه بمعايير التقييم: نقاط القوة والضعف والدرجة"
+              className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow disabled:opacity-40 transition">
+              {evaluating ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
+              قيّم العرض الفني
+            </button>
+          </div>
+
+          {evalError && (
+            <p className="text-xs text-rose-300 font-semibold" dir="auto">⚠ {evalError}</p>
+          )}
+
+          {evaluation && (
+            <div className="space-y-3">
+              {/* الدرجة */}
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className={`text-4xl font-black font-mono ${
+                  evaluation.score >= 80 ? 'text-emerald-400' : evaluation.score >= 50 ? 'text-amber-400' : 'text-rose-400'
+                }`}>
+                  {evaluation.score}
+                  <span className="text-base text-slate-500">/100</span>
+                </div>
+                <div className="text-xs text-slate-400 leading-relaxed" dir="rtl">
+                  <p>البنود المجابة: <span className="text-white font-bold">{evaluation.addressed}/{evaluation.total}</span></p>
+                  <p className="text-slate-500">{evaluation.summary}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {/* نقاط القوة */}
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-300 mb-2 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> نقاط القوة ({evaluation.strengths.length})
+                  </p>
+                  {evaluation.strengths.length === 0 ? (
+                    <p className="text-xs text-slate-500">لا توجد تغطية كاملة — راجع نقاط الضعف.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {evaluation.strengths.map((s) => (
+                        <li key={s.clause_id} className="text-xs text-slate-300 flex items-start gap-1.5">
+                          <CheckCircle2 className="h-3 w-3 text-emerald-400 mt-0.5 shrink-0" />
+                          <span><span className="font-mono text-emerald-300">{s.clause_id}</span> — {s.section}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* نقاط الضعف */}
+                <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-rose-300 mb-2 flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5" /> نقاط الضعف ({evaluation.weaknesses.length})
+                  </p>
+                  {evaluation.weaknesses.length === 0 ? (
+                    <p className="text-xs text-emerald-400">لا فجوات — العرض يغطي كل البنود المطلوبة ✓</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {evaluation.weaknesses.map((w) => (
+                        <li key={w.clause_id} className="text-xs text-slate-300 flex items-start gap-1.5" dir="rtl">
+                          <XCircle className="h-3 w-3 text-rose-400 mt-0.5 shrink-0" />
+                          <span>
+                            <span className="font-mono text-rose-300">{w.clause_id}</span>
+                            <span className="text-slate-400"> (-{w.penalty_points} نقطة)</span> — {w.description}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              {/* تغطية جزئية */}
+              {evaluation.partial_coverage.length > 0 && (
+                <p className="text-xs text-amber-300/80" dir="rtl">
+                  ⚡ تغطية جزئية (تحتاج تعميقاً): {evaluation.partial_coverage.map((p) => p.clause_id).join('، ')}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-12 rounded-lg bg-slate-800/60 animate-pulse" />)}</div>
       ) : documents.length === 0 ? (
@@ -183,7 +367,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
           <UploadCloud className="h-10 w-10 text-slate-600 mx-auto mb-3" />
           <p className="text-sm font-bold text-slate-300">No documents ingested yet for this tender.</p>
           <p className="text-xs text-slate-500 mt-1">
-            Upload the owner&apos;s RFP package (PDF / DOCX / XLSX / DXF / DWG) or scan a server folder — files bind to the active workspace.
+            ارفع كراسة المنافسة (RFP/معايير/مواصفات) — وملف العرض الفني لاحقاً ليُصنّف تلقائياً ويظهر زر التقييم.
           </p>
         </div>
       ) : (
@@ -193,7 +377,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
               <tr>
                 <th className="px-3 py-2.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Document</th>
                 <th className="px-3 py-2.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-44">Category</th>
-                <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">Status</th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-28">Status</th>
                 <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-28">Pages / Chars</th>
                 <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-44">Criteria Gate</th>
               </tr>
@@ -210,7 +394,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-slate-500 shrink-0" />
                         <div className="min-w-0">
-                          <p className="font-semibold text-slate-100 truncate max-w-[280px]">{doc.filename}</p>
+                          <p className="font-semibold text-slate-100 truncate max-w-[280px]" dir="auto">{doc.filename}</p>
                           <p className="text-[10px] text-slate-500 font-mono">{sizeMb} MB{doc.ocr_used ? ' · OCR' : ''}</p>
                         </div>
                       </div>
@@ -225,7 +409,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase ${status.cls}`}>
-                        <StatusIcon className="h-3.5 w-3.5" /> {doc.status}
+                        <StatusIcon className="h-3.5 w-3.5" /> {doc.status === 'PROCESSING' ? 'PROCESSING…' : doc.status}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-center font-mono text-xs text-slate-400">
@@ -239,7 +423,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
                           </span>
                         ) : (
                           <button onClick={() => pinCriteria(doc.id)}
-                            title="Pin as THE binding evaluation-criteria document"
+                            title="ثبّت هذه الوثيقة كمعيار تقييم ملزم للمنافسة"
                             className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 transition">
                             <MapPin className="h-3 w-3" /> Pin
                           </button>

@@ -4,7 +4,7 @@ import os
 import shutil
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.crypto_vault import decrypt
@@ -60,12 +60,14 @@ def _serialize(doc: PackageDocument, text_sample: str = "") -> Dict[str, Any]:
 @router.post("/upload")
 async def upload_document(
     tender_id: int,
+    background_tasks: BackgroundTasks,
     file: UploadFile,
     description: str = "",
     ocr_enabled: bool = False,
     db: Session = Depends(get_db),
 ):
-    """Stream a single document to disk, register it, and process it in the background."""
+    """يحفظ الملف ويسجّله فوراً، ويؤجل المعالجة الثقيلة (استخراج/OCR/embedding) للخلفية.
+    الرد يأتي خلال ثوانٍ — والعميل يتتبع الحالة عبر GET /documents (status=PROCESSING)."""
     filename = os.path.basename(file.filename or "document")
     ext = os.path.splitext(filename)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -97,24 +99,14 @@ async def upload_document(
     db.commit()
     db.refresh(doc)
 
+    # المعالجة الثقيلة في الخلفية — الرفع لا ينتظرها
     from app.services.document_pipeline import process_document
 
-    summary = process_document(doc.id, ocr_enabled=ocr_enabled)
-    db.refresh(doc)
-
-    text_sample = ""
-    first_chunk = (
-        db.query(PackageDocumentChunk)
-        .filter(PackageDocumentChunk.document_id == doc.id)
-        .order_by(PackageDocumentChunk.chunk_index)
-        .first()
-    )
-    if first_chunk:
-        text_sample = first_chunk.chunk_text
+    background_tasks.add_task(process_document, doc.id, ocr_enabled)
 
     return {
-        "document": _serialize(doc, text_sample),
-        "processing": summary,
+        "document": _serialize(doc),
+        "processing": {"status": "QUEUED", "note": "processing continues in background — poll GET /documents"},
         "description": description,
     }
 
