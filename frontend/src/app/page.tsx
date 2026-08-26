@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Gauge, Radar, Layers, Activity, Loader2, Radio, ClipboardCheck, TrendingDown,
-  CalendarClock, HardHat, Scale, Banknote, FileText, Link, Database, Zap, FileSearch,
-} from 'lucide-react';
+  CalendarClock, HardHat, Scale, Banknote, FileText, Link, Database, Zap, FileSearch, FolderOpen } from 'lucide-react';
 
 import { SystemHealthMonitor } from '../components/SystemHealthMonitor';
 import { LlmUsageCard } from '../components/LlmUsageCard';
@@ -23,6 +22,7 @@ import { BlockchainLedgerStudio } from '../components/BlockchainLedgerStudio';
 import { RfpComplianceMatrixStudio } from '../components/RfpComplianceMatrixStudio';
 import { DashboardHeader } from '../components/DashboardHeader';
 import { UploadTenderModal } from '../components/UploadTenderModal';
+import { NewCompetitionWizard } from '../components/NewCompetitionWizard';
 import { DocumentLibrary } from '../components/DocumentLibrary';
 import { ProposalDraftingStudio } from '../components/ProposalDraftingStudio';
 import { launchTenderSwarm } from '../lib/tenders_client';
@@ -72,6 +72,13 @@ export default function Dashboard() {
   const [tenant, setTenant] = useState<TenantContext>({ id: '1', name: 'Workspace', project: 'Loading…', phase: 'Draft', role: 'Lead Architect' });
   const [activeTab, setActiveTab] = useState<StudioTab>('compliance');
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const handleWizardCreated = (t: { id: number; title: string; client_name: string; status: string }) => {
+    const ctx = { id: String(t.id), name: t.client_name || t.title, project: t.title, phase: 'Draft', role: 'Lead Architect' };
+    setTenant(ctx);
+    setTenderId(t.id);
+    setSessionEpoch((e) => e + 1);
+  };
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
 
@@ -182,7 +189,18 @@ export default function Dashboard() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(60%_100%_at_50%_0%,oklch(70%_0.14_185/0.10),transparent_70%),radial-gradient(45%_90%_at_85%_10%,oklch(60%_0.15_250/0.08),transparent_70%)]"
       />
-      <DashboardHeader tenant={tenant} onTenantChange={setTenant} onUploadClick={() => setUploadOpen(true)} />
+      <DashboardHeader
+        tenant={tenant}
+        onTenantChange={setTenant}
+        onUploadClick={() => setUploadOpen(true)}
+        onNewCompetition={() => setWizardOpen(true)}
+      />
+
+      <NewCompetitionWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onCreated={handleWizardCreated}
+      />
 
       <UploadTenderModal
         open={uploadOpen}
@@ -215,7 +233,11 @@ export default function Dashboard() {
           ) : (
             <div className="rounded-lg border-2 border-dashed border-slate-700 bg-slate-900/40 p-10 text-center">
               <p className="text-sm font-bold text-slate-300">لا توجد منافسة نشطة</p>
-              <p className="text-xs text-slate-500 mt-1">اختر منافسة من القائمة العلوية، أو ارفع كراسة جديدة للبدء.</p>
+              <p className="text-xs text-slate-500 mt-1 mb-4">ابدأ رحلة منافسة جديدة: سمّها، ارفع كراستها، ثم عرض فريقك.</p>
+              <button onClick={() => setWizardOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-black bg-gradient-to-r from-teal-500 to-blue-600 text-white shadow hover:from-teal-400 hover:to-blue-500 transition">
+                <FolderOpen className="h-4 w-4" /> إنشاء منافسة جديدة
+              </button>
             </div>
           )}
         </section>

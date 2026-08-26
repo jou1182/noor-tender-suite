@@ -56,3 +56,22 @@ export async function launchTenderSwarm(
   if (!res.ok) throw new Error(body.detail || `Failed to launch swarm (HTTP ${res.status})`);
   return body;
 }
+
+
+/** رفع دفعة ملفات كراسة إلى منافسة قائمة (عبر نقطة documents/upload لكل ملف). */
+export async function uploadTenderFiles(tenderId: number, files: File[], hasXer: boolean): Promise<void> {
+  for (const file of files) {
+    const form = new FormData();
+    form.append("file", file);
+    const isXer = file.name.toLowerCase().endsWith(".xer");
+    // XER يمر عبر مسار الجدول الزمني في audits/trigger لاحقاً؛ هنا نسجله كمستند
+    const res = await fetch(`${API_BASE}/api/v1/documents/upload?tender_id=${tenderId}${isXer ? "&doc_category=SCHEDULE" : ""}`, {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `فشل رفع ${file.name}`);
+    }
+  }
+}

@@ -14,6 +14,7 @@ interface DashboardHeaderProps {
   tenant: TenantContext;
   onTenantChange: (tenant: TenantContext) => void;
   onUploadClick: () => void;
+  onNewCompetition: () => void;
 }
 
 /** سياق الهوية يُبنى الآن ديناميكياً من المنافسات الحقيقية في قاعدة البيانات. */
@@ -31,7 +32,7 @@ const PHASE_STYLE: Record<string, string> = {
   Completed: 'text-emerald-300 border-emerald-500/40 bg-emerald-500/15',
 };
 
-export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTenantChange, onUploadClick }) => {
+export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTenantChange, onUploadClick, onNewCompetition }) => {
   const router = useRouter();
   const [tenants, setTenants] = useState<TenderSummary[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -334,11 +335,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
             </button>
 
             <button
-              onClick={onUploadClick}
+              onClick={() => (tenant.id === '' ? onNewCompetition() : onUploadClick())}
+              title={tenant.id === ''
+                ? 'ابدأ منافسة جديدة: الاسم ثم الكراسة ثم قرار الإطلاق'
+                : 'أضف ملفات إلى المنافسة النشطة'}
               className="flex items-center gap-2 bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-400 hover:to-blue-500 text-white font-bold text-sm px-4 py-2.5 rounded-lg shadow-lg shadow-blue-500/20 transition"
             >
               <UploadCloud className="h-4 w-4" />
-              {t("uploadTenderPackage", lang)}
+              {tenant.id === '' ? 'منافسة جديدة' : t("uploadTenderPackage", lang)}
             </button>
 
             {/* تبديل اللغة عربي/إنجليزي */}
@@ -368,7 +372,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
               <Settings className="h-5 w-5" />
             </button>
             <button
-              onClick={onUploadClick}
+              onClick={() => (tenant.id === '' ? onNewCompetition() : onUploadClick())}
               className="flex items-center gap-1.5 bg-gradient-to-r from-teal-500 to-blue-600 text-white font-bold text-xs px-3 py-2.5 rounded-lg transition"
             >
               <UploadCloud className="h-4 w-4" />
