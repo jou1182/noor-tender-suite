@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Boxes, Building2, ChevronDown, UploadCloud, Menu, X, ShieldCheck, Radio,
-  Settings, Plus, Trash2, RefreshCw, Loader2, Check,
+  Settings, Plus, Trash2, RefreshCw, Loader2, Check, RotateCcw,
 } from 'lucide-react';
 import { TenderSummary, listTenders, createTender, deleteTender } from '../lib/tenders_client';
 import type { TenantContext } from '../lib/demoData';
@@ -56,13 +56,40 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
 
   useEffect(() => { load(); }, [load]);
 
-  // مزامنة أول تنافس عند الإقلاع (الصفحة الرئيسية تملك الـ state الأب)
+  // استرجاع المنافسة النشطة من جلسة المتصفح (sessionStorage):
+  // - تحديث الصفحة: يبقى سياقك
+  // - إغلاق المتصفح وفتحه: جلسة جديدة نظيفة تبدأ من أول منافسة
+  // - القائمة نفسها (كل المشاريع) تبقى دائماً من قاعدة البيانات
   useEffect(() => {
-    if (!loadingList && tenants.length > 0 && !tenants.some((t) => String(t.id) === tenant.id)) {
+    if (loadingList) return;
+    const savedId = typeof window !== 'undefined' ? sessionStorage.getItem('contech.activeTenderId') : null;
+    if (savedId) {
+      const saved = tenants.find((t) => String(t.id) === savedId);
+      if (saved) {
+        onTenantChange(tenantFromTender(saved));
+        return;
+      }
+    }
+    if (tenants.length > 0 && !tenants.some((t) => String(t.id) === tenant.id)) {
       onTenantChange(tenantFromTender(tenants[0]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingList, tenants]);
+
+  // حفظ المنافسة النشطة عند تغييرها
+  useEffect(() => {
+    if (typeof window !== 'undefined' && tenant.id && tenant.id !== '1') {
+      sessionStorage.setItem('contech.activeTenderId', tenant.id);
+    }
+  }, [tenant.id]);
+
+  /** «بدء من جديد» — يمسح الجلسة الحالية فقط (لا يحذف أي بيانات) ويبدأ من أول منافسة */
+  const handleResetSession = async () => {
+    sessionStorage.removeItem('contech.activeTenderId');
+    const list = await load();
+    if (list.length > 0) onTenantChange(tenantFromTender(list[0]));
+    setMenuOpen(false);
+  };
 
   // إغلاق القائمة عند النقر خارجها
   useEffect(() => {
@@ -269,6 +296,16 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
               <span className="text-xs font-semibold text-white">{tenant.role}</span>
             </div>
+
+            {/* بدء من جديد — جلسة نظيفة دون حذف البيانات */}
+            <button
+              onClick={handleResetSession}
+              title="ابدأ جلسة جديدة: يُزال سياق المنافسة الحالية من الشاشة (البيانات والمشاريع تبقى محفوظة)"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-300 border border-slate-600 hover:border-teal-500/50 hover:text-teal-300 px-3 py-2.5 rounded-lg transition"
+            >
+              <RotateCcw className="h-4 w-4" />
+              بدء من جديد
+            </button>
 
             <button
               onClick={onUploadClick}

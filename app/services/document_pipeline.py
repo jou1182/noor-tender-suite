@@ -1,4 +1,4 @@
-﻿"""
+"""
 Document Processing Pipeline.
 
 Background pipeline for each registered tender document:
@@ -228,9 +228,10 @@ def _index_to_qdrant(tender_id: int, document_id: int, chunks: List[Dict[str, An
         return 0
 
 
-def process_document(document_id: int, ocr_enabled: bool = False) -> Dict[str, Any]:
+def process_document(document_id: int, ocr_enabled: bool = False, force_category: str = "") -> Dict[str, Any]:
     """
     Process a registered document end-to-end. Safe to run in a background task.
+    force_category يتجاوز التصنيف التلقائي (مثال: PROPOSAL من زر الرفع المخصص).
     Returns a summary dict {status, category, confidence, chunks, pages}.
     """
     from app.parsers.document_classifier import classify_document
@@ -264,9 +265,15 @@ def process_document(document_id: int, ocr_enabled: bool = False) -> Dict[str, A
 
         classification = classify_document(doc.filename, text)
 
-        doc.doc_category = classification["category"]
-        doc.classification_confidence = classification["confidence"]
-        doc.classification_signals = str(classification["signals"])
+        if force_category:
+            # تجاوز يدوي موثوق (زر الرفع المخصص) — نسجل أن المستخدم حدد الفئة
+            doc.doc_category = force_category
+            doc.classification_confidence = 1.0
+            doc.classification_signals = f"manual_override:{classification['category']}"
+        else:
+            doc.doc_category = classification["category"]
+            doc.classification_confidence = classification["confidence"]
+            doc.classification_signals = str(classification["signals"])
         doc.page_count = page_count
         doc.text_chars = len(text)
         doc.ocr_used = ocr_used

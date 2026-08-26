@@ -50,6 +50,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
   const [documents, setDocuments] = useState<TenderDocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploads, setUploads] = useState<Record<string, UploadState>>({});
+  const [proposalUploading, setProposalUploading] = useState(false);
   const [scanFolder, setScanFolder] = useState('');
   const [scanBusy, setScanBusy] = useState(false);
   const [showScan, setShowScan] = useState(false);
@@ -63,6 +64,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
   const [evaluating, setEvaluating] = useState(false);
   const [evalError, setEvalError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
+  const proposalInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -119,6 +121,28 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
     setTimeout(() => setUploads({}), 1500);
     await load();
     if (fileInput.current) fileInput.current.value = '';
+  };
+
+  /** رفع العرض الفني بفئة إجبارية PROPOSAL — لا اعتماد على التصنيف التلقائي */
+  const uploadProposal = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files);
+    setProposalUploading(true);
+    try {
+      for (const file of list) {
+        const form = new FormData();
+        form.append('file', file);
+        try {
+          await fetch(`${API}/api/v1/documents/upload?tender_id=${tenderId}&doc_category=PROPOSAL`, {
+            method: 'POST', body: form,
+          });
+        } catch { /* continue */ }
+      }
+      await load();
+    } finally {
+      setProposalUploading(false);
+      if (proposalInput.current) proposalInput.current.value = '';
+    }
   };
 
   const scanServerFolder = async () => {
@@ -223,8 +247,18 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
             <FolderSearch className="h-4 w-4" /> Scan Server Folder
           </button>
           {/* رفع إضافي — يضيف للقائمة دون مسح الموجود */}
+          {/* زر مخصص للعرض الفني — يضمن التصنيف PROPOSAL 100% */}
+          <button onClick={() => proposalInput.current?.click()}
+            title="ارفع العرض الفني المقدم من فريق العمل — سيُوسم كـ PROPOSAL ويظهر زر التقييم"
+            className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow hover:from-fuchsia-500 hover:to-purple-500 transition disabled:opacity-50">
+            <ClipboardCheck className="h-4 w-4" />
+            رفع العرض الفني
+          </button>
+          <input ref={proposalInput} type="file" multiple hidden
+            accept=".pdf,.docx,.doc"
+            onChange={(e) => uploadProposal(e.target.files)} />
           <button onClick={() => fileInput.current?.click()}
-            title="أضف ملفات إضافية (كراسة إضافية، ملاحق، أو العرض الفني) — تُضاف للقائمة الحالية"
+            title="أضف ملفات كراسة المنافسة أو ملاحقها — تُضاف للقائمة الحالية"
             className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-blue-600 text-white shadow disabled:opacity-50">
             <UploadCloud className="h-4 w-4" />
             Upload Files

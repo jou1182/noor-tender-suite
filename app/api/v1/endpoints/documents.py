@@ -1,4 +1,4 @@
-﻿"""Tender Documents API â€” large-scale ingestion, triage, criteria pinning & RAG."""
+"""Tender Documents API â€” large-scale ingestion, triage, criteria pinning & RAG."""
 
 import os
 import shutil
@@ -57,6 +57,12 @@ def _serialize(doc: PackageDocument, text_sample: str = "") -> Dict[str, Any]:
 
 # ------------------------------------------------------------- upload ---
 
+ALLOWED_CATEGORIES = {
+    "EVALUATION_CRITERIA", "SPECIFICATIONS", "BOQ", "DRAWINGS",
+    "FORMS", "ADDENDUM", "CONTRACT", "PROPOSAL", "OTHER",
+}
+
+
 @router.post("/upload")
 async def upload_document(
     tender_id: int,
@@ -64,6 +70,7 @@ async def upload_document(
     file: UploadFile,
     description: str = "",
     ocr_enabled: bool = False,
+    doc_category: str = "",
     db: Session = Depends(get_db),
 ):
     """يحفظ الملف ويسجّله فوراً، ويؤجل المعالجة الثقيلة (استخراج/OCR/embedding) للخلفية.
@@ -87,6 +94,11 @@ async def upload_document(
                 os.remove(dest)
                 raise HTTPException(status_code=413, detail="File exceeds 2GB limit")
 
+    # تجاوز يدوي للتصنيف (مثل زر «رفع العرض الفني» المخصص) — قبل إنشاء السجل
+    force_category = doc_category.strip().upper() if doc_category.strip() else ""
+    if force_category and force_category not in ALLOWED_CATEGORIES:
+        raise HTTPException(status_code=422, detail=f"invalid doc_category: {force_category}")
+
     doc = PackageDocument(
         tender_id=tender_id,
         filename=filename,
@@ -94,6 +106,9 @@ async def upload_document(
         size_bytes=size,
         file_ext=ext,
         status="REGISTERED",
+        doc_category=force_category or "UNCATEGORIZED",
+        classification_confidence=1.0 if force_category else 0.0,
+        classification_signals=f"manual_override" if force_category else "",
     )
     db.add(doc)
     db.commit()
@@ -102,7 +117,7 @@ async def upload_document(
     # المعالجة الثقيلة في الخلفية — الرفع لا ينتظرها
     from app.services.document_pipeline import process_document
 
-    background_tasks.add_task(process_document, doc.id, ocr_enabled)
+    background_tasks.add_task(process_document, doc.id, ocr_enabled, force_category)
 
     return {
         "document": _serialize(doc),
