@@ -7,6 +7,7 @@ import {
   ClipboardCheck, TrendingUp, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import type { RagCitation, TenderDocumentItem } from '../types/platform';
+import { t, getLang, type Lang } from '../lib/i18n';
 
 const API = 'http://localhost:8000';
 
@@ -65,6 +66,13 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
   const [evalError, setEvalError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
   const proposalInput = useRef<HTMLInputElement>(null);
+  const [lang, setLang] = useState<Lang>('ar');
+  useEffect(() => {
+    setLang(getLang());
+    const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
+    window.addEventListener('contech.lang-changed', onChange);
+    return () => window.removeEventListener('contech.lang-changed', onChange);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -231,37 +239,38 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
           <div>
             <h2 className="text-lg font-black text-white leading-tight">Document Library &amp; Ingestion</h2>
             <p className="text-xs text-slate-400">
-              <span className="font-mono font-bold text-teal-300">{documents.length}</span> files ·
-              <span className="font-mono font-bold text-emerald-300"> {processed}</span> processed ·
-              <span className="font-mono font-bold text-amber-300"> {criteriaFound}</span> criteria ·
-              <span className="font-mono font-bold text-fuchsia-300"> {proposalDocs.length}</span> proposal
+              <span className="font-mono font-bold text-teal-300">{documents.length}</span> {t("files", lang)} ·
+              <span className="font-mono font-bold text-emerald-300"> {processed}</span> {t("processed", lang)} ·
+              <span className="font-mono font-bold text-amber-300"> {criteriaFound}</span> {t("criteria", lang)} ·
+              <span className="font-mono font-bold text-fuchsia-300"> {proposalDocs.length}</span> {t("proposal", lang)}
               {processingCount > 0 && (
-                <span className="text-cyan-300"> · {processingCount} processing in background…</span>
+                <span className="text-cyan-300"> · {processingCount} {t("processingBg", lang)}</span>
               )}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowScan(!showScan)}
+            title={t("scanServerHint", lang)}
             className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 transition">
-            <FolderSearch className="h-4 w-4" /> Scan Server Folder
+            <FolderSearch className="h-4 w-4" /> {t("scanServerFolder", lang)}
           </button>
           {/* رفع إضافي — يضيف للقائمة دون مسح الموجود */}
           {/* زر مخصص للعرض الفني — يضمن التصنيف PROPOSAL 100% */}
           <button onClick={() => proposalInput.current?.click()}
-            title="ارفع العرض الفني المقدم من فريق العمل — سيُوسم كـ PROPOSAL ويظهر زر التقييم"
+            title={t("uploadProposalHint", lang)}
             className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow hover:from-fuchsia-500 hover:to-purple-500 transition disabled:opacity-50">
             <ClipboardCheck className="h-4 w-4" />
-            رفع العرض الفني
+            {t("uploadProposal", lang)}
           </button>
           <input ref={proposalInput} type="file" multiple hidden
             accept=".pdf,.docx,.doc"
             onChange={(e) => uploadProposal(e.target.files)} />
           <button onClick={() => fileInput.current?.click()}
-            title="أضف ملفات كراسة المنافسة أو ملاحقها — تُضاف للقائمة الحالية"
+            title={t("uploadFilesHint", lang)}
             className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-blue-600 text-white shadow disabled:opacity-50">
             <UploadCloud className="h-4 w-4" />
-            Upload Files
+            {t("uploadFiles", lang)}
           </button>
           <input ref={fileInput} type="file" multiple hidden
             accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.md,.csv,.dxf,.dwg,.zip"
@@ -307,16 +316,16 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-[11px] font-black uppercase tracking-widest text-fuchsia-300 flex items-center gap-1.5">
               <ClipboardCheck className="h-4 w-4" />
-              تقييم العرض الفني ضد معايير المنافسة
+              {t("proposalEvalTitle", lang)}
               {proposalDocs.length > 0 && (
-                <span className="normal-case text-slate-400">({proposalDocs.length} ملف عرض)</span>
+                <span className="normal-case text-slate-400">({proposalDocs.length} {t("proposal", lang)})</span>
               )}
             </p>
             <button onClick={evaluateProposal} disabled={evaluating || processed === 0}
-              title="يحلل العرض الفني ويقارنه بمعايير التقييم: نقاط القوة والضعف والدرجة"
+              title={t("proposalEvalHint", lang) || ""}
               className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow disabled:opacity-40 transition">
               {evaluating ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
-              قيّم العرض الفني
+              {t("evaluateProposal", lang)}
             </button>
           </div>
 
@@ -344,10 +353,10 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
                 {/* نقاط القوة */}
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-300 mb-2 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> نقاط القوة ({evaluation.strengths.length})
+                    <CheckCircle2 className="h-3.5 w-3.5" /> {t("strengths", lang)} ({evaluation.strengths.length})
                   </p>
                   {evaluation.strengths.length === 0 ? (
-                    <p className="text-xs text-slate-500">لا توجد تغطية كاملة — راجع نقاط الضعف.</p>
+                    <p className="text-xs text-slate-500">{t("noFull", lang)}</p>
                   ) : (
                     <ul className="space-y-1.5">
                       {evaluation.strengths.map((s) => (
@@ -363,10 +372,10 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
                 {/* نقاط الضعف */}
                 <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-rose-300 mb-2 flex items-center gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5" /> نقاط الضعف ({evaluation.weaknesses.length})
+                    <AlertTriangle className="h-3.5 w-3.5" /> {t("weaknesses", lang)} ({evaluation.weaknesses.length})
                   </p>
                   {evaluation.weaknesses.length === 0 ? (
-                    <p className="text-xs text-emerald-400">لا فجوات — العرض يغطي كل البنود المطلوبة ✓</p>
+                    <p className="text-xs text-emerald-400">{t("noGaps", lang)}</p>
                   ) : (
                     <ul className="space-y-1.5">
                       {evaluation.weaknesses.map((w) => (
@@ -386,7 +395,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
               {/* تغطية جزئية */}
               {evaluation.partial_coverage.length > 0 && (
                 <p className="text-xs text-amber-300/80" dir="rtl">
-                  ⚡ تغطية جزئية (تحتاج تعميقاً): {evaluation.partial_coverage.map((p) => p.clause_id).join('، ')}
+                  ⚡ {t("partialCoverage", lang)}: {evaluation.partial_coverage.map((p) => p.clause_id).join('، ')}
                 </p>
               )}
             </div>
@@ -399,10 +408,8 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
       ) : documents.length === 0 ? (
         <div className="border-2 border-dashed border-slate-700 rounded-xl p-10 text-center">
           <UploadCloud className="h-10 w-10 text-slate-600 mx-auto mb-3" />
-          <p className="text-sm font-bold text-slate-300">No documents ingested yet for this tender.</p>
-          <p className="text-xs text-slate-500 mt-1">
-            ارفع كراسة المنافسة (RFP/معايير/مواصفات) — وملف العرض الفني لاحقاً ليُصنّف تلقائياً ويظهر زر التقييم.
-          </p>
+          <p className="text-sm font-bold text-slate-300">{t("noDocs", lang)}</p>
+<p className="text-xs text-slate-500 mt-1">{t("noDocsHint", lang)}</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-slate-800">
@@ -492,12 +499,12 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
       {/* RAG ask */}
       <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-4">
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
-          <Search className="h-3.5 w-3.5" /> Ask the RFP Corpus — answers cite file &amp; page
+          <Search className="h-3.5 w-3.5" /> {t("askCorpus", lang)}
         </p>
         <div className="flex gap-2">
           <input value={question} onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && ask()}
-            placeholder="e.g. أين شرط الخرسانة المسلحة؟ / Where is the dewatering requirement?"
+            placeholder={t("askPlaceholder", lang)}
             dir="auto"
             className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500" />
           <button onClick={ask} disabled={asking || !question.trim()}

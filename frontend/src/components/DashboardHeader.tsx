@@ -4,10 +4,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Boxes, Building2, ChevronDown, UploadCloud, Menu, X, ShieldCheck, Radio,
-  Settings, Plus, Trash2, RefreshCw, Loader2, Check, RotateCcw,
+  Settings, Plus, Trash2, RefreshCw, Loader2, Check, RotateCcw, Languages,
 } from 'lucide-react';
 import { TenderSummary, listTenders, createTender, deleteTender } from '../lib/tenders_client';
 import type { TenantContext } from '../lib/demoData';
+import { t, getLang, setLang, type Lang } from '../lib/i18n';
 
 interface DashboardHeaderProps {
   tenant: TenantContext;
@@ -40,7 +41,22 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
   const [newTitle, setNewTitle] = useState('');
   const [newClient, setNewClient] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [lang, setLangState] = useState<Lang>('ar');
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // تحميل اللغة المحفوظة + الاستماع لتبديلها
+  useEffect(() => {
+    setLangState(getLang());
+    const onChange = (e: Event) => setLangState((e as CustomEvent).detail as Lang);
+    window.addEventListener('contech.lang-changed', onChange);
+    return () => window.removeEventListener('contech.lang-changed', onChange);
+  }, []);
+
+  const toggleLang = () => {
+    const next: Lang = lang === 'ar' ? 'en' : 'ar';
+    setLang(next);
+    setLangState(next);
+  };
 
   const load = useCallback(async () => {
     try {
@@ -160,7 +176,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
                 ConTech AI Platform
               </h1>
               <p className="hidden sm:flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-teal-400 font-bold">
-                <Radio size={10} className="animate-pulse" /> Multi-Agent Tender Intelligence
+                <Radio size={10} className="animate-pulse" /> {t("tagline", lang)}
               </p>
             </div>
           </div>
@@ -300,11 +316,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
             {/* بدء من جديد — جلسة نظيفة دون حذف البيانات */}
             <button
               onClick={handleResetSession}
-              title="ابدأ جلسة جديدة: يُزال سياق المنافسة الحالية من الشاشة (البيانات والمشاريع تبقى محفوظة)"
+              title={t("startFreshHint", lang)}
               className="flex items-center gap-1.5 text-xs font-bold text-slate-300 border border-slate-600 hover:border-teal-500/50 hover:text-teal-300 px-3 py-2.5 rounded-lg transition"
             >
               <RotateCcw className="h-4 w-4" />
-              بدء من جديد
+              {t("startFresh", lang)}
             </button>
 
             <button
@@ -312,14 +328,24 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
               className="flex items-center gap-2 bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-400 hover:to-blue-500 text-white font-bold text-sm px-4 py-2.5 rounded-lg shadow-lg shadow-blue-500/20 transition"
             >
               <UploadCloud className="h-4 w-4" />
-              Upload Tender Package
+              {t("uploadTenderPackage", lang)}
+            </button>
+
+            {/* تبديل اللغة عربي/إنجليزي */}
+            <button
+              onClick={toggleLang}
+              title="Switch language / تغيير اللغة"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-300 border border-slate-600 hover:border-cyan-500/50 hover:text-cyan-300 px-3 py-2.5 rounded-lg transition"
+            >
+              <Languages className="h-4 w-4" />
+              {lang === 'ar' ? 'EN' : 'ع'}
             </button>
 
             <button
               onClick={() => router.push('/settings')}
-              title="Platform Settings — Agents & LLM Providers"
+              title={t("settings", lang)}
               className="p-2.5 rounded-lg border border-slate-600/60 text-slate-300 hover:text-teal-400 hover:border-teal-500/40 hover:bg-slate-800 transition"
-              aria-label="Platform settings"
+              aria-label={t("settings", lang)}
             >
               <Settings className="h-4.5 w-4.5" />
             </button>
