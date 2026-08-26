@@ -233,16 +233,19 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
         except Exception:  # noqa: BLE001 — المتجهات اختيارية؛ الحذف يستمر بدونها
             pass
 
-    # 3) الملف على القرص (فقط إن كان تحت UPLOAD_ROOT — لا نلمس ملفات scan-folder الأصلية)
+    # 3) الملف على القرص (فقط إن كان داخل UPLOAD_ROOT فعلياً — حماية من path traversal)
     file_removed = False
     rel_path = doc.rel_path or ""
-    upload_root = os.path.abspath(UPLOAD_ROOT)
-    if rel_path and os.path.isfile(rel_path) and os.path.abspath(rel_path).startswith(upload_root):
-        try:
-            os.remove(rel_path)
-            file_removed = True
-        except OSError:
-            pass
+    upload_root = os.path.realpath(UPLOAD_ROOT)
+    if rel_path and os.path.isfile(rel_path):
+        real = os.path.realpath(rel_path)
+        # os.path.realpath + sep يمنع تجاوز الحماية بمجلدات مثل uploads_evil أو uploads-backup
+        if real == upload_root or real.startswith(upload_root + os.sep):
+            try:
+                os.remove(real)
+                file_removed = True
+            except OSError:
+                pass
 
     was_pinned = bool(doc.is_pinned_criteria)
     db.delete(doc)

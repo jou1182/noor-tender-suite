@@ -1,13 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+import os
 import time
 
 app = FastAPI(title="ConTech AI Platform Master API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # محلياً: الواجهة على 3000. في الإنتاج أضف دومينك عبر متغير البيئة ALLOWED_ORIGINS
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,12 +57,14 @@ def verify_token(authorization: str = Header(default=None)):
         raise HTTPException(status_code=401, detail="Unauthorized")
     token = authorization.split("Bearer ")[1]
     import jwt
+    from app.core.security import SECRET_KEY
     try:
-        # Match app/core/security.py
-        payload = jwt.decode(token, "supersecretkey_for_dev_only", algorithms=["HS256"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         if payload.get("role") not in ["lead_architect", "admin"]:
             raise HTTPException(status_code=403, detail="Forbidden: Insufficient privileges")
         return payload
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=403, detail="Forbidden: Invalid Token")
 
@@ -241,13 +245,16 @@ async def trigger_tender_audit(
 
     rfp_paths = []
     for rfp in rfp_files:
-        path = os.path.join(upload_dir, rfp.filename)
+        # تنقية اسم الملف: basename يمنع path traversal (../../etc/passwd)
+        safe_name = os.path.basename(rfp.filename or "rfp_file")
+        path = os.path.join(upload_dir, safe_name)
         with open(path, "wb") as buffer:
             shutil.copyfileobj(rfp.file, buffer)
         rfp_paths.append(path)
         db.add(TenderDocument(tender_id=tender_id, document_type="RFP", file_path=path))
 
-    schedule_path = os.path.join(upload_dir, schedule_file.filename)
+    schedule_safe = os.path.basename(schedule_file.filename or "schedule.xer")
+    schedule_path = os.path.join(upload_dir, schedule_safe)
     with open(schedule_path, "wb") as buffer:
         shutil.copyfileobj(schedule_file.file, buffer)
     db.add(TenderDocument(tender_id=tender_id, document_type="SCHEDULE", file_path=schedule_path))

@@ -39,7 +39,7 @@ import type { LlmMetrics } from '../components/LlmUsageCard';
 import type { VEOpportunityCard, VESummary } from '../types/ve';
 
 import {
-  TENANTS, demoSystemHealth, demoLlmMetrics, demoSubmittalData, demoVeCards, demoVeSummary,
+  demoSubmittalData, demoVeCards, demoVeSummary,
   demoScheduleHealth, demoPitchDeck, demoSimulation4D, demoItpHse, demoClaims,
   demoIpc, demoFieldData, demoDossier, demoBlockchain, demoComplianceRecords,
 } from '../lib/demoData';
@@ -206,9 +206,10 @@ export default function Dashboard() {
             <ExecutivePortfolioDashboard overview={overview} />
             <SystemHealthMonitor overview={overview} />
             {/* بطاقة LLM تظهر فقط عند توفر قياسات حقيقية من آخر سرب — لا demo */}
-            {(redTeamData?.llm_metrics_output as LlmMetrics | undefined) && (
-              <LlmUsageCard data={redTeamData!.llm_metrics_output as LlmMetrics} />
-            )}
+            {(() => {
+              const llm = redTeamData?.llm_metrics_output as LlmMetrics | undefined;
+              return llm ? <LlmUsageCard data={llm} /> : null;
+            })()}
           </div>
         </section>
 
