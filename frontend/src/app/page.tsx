@@ -27,6 +27,7 @@ import { DocumentLibrary } from '../components/DocumentLibrary';
 import { ProposalDraftingStudio } from '../components/ProposalDraftingStudio';
 import { launchTenderSwarm } from '../lib/tenders_client';
 import { fetchPlatformOverview } from '../lib/analytics_client';
+import { t, getLang, type Lang } from '../lib/i18n';
 import type { PlatformOverview } from '../lib/analytics_client';
 
 import { useTenderAudit } from '../hooks/useTenderAudit';
@@ -76,6 +77,13 @@ export default function Dashboard() {
 
   // لوحة القيادة الحية — تُحدّث مع كل تغيير في حالة التدقيق
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
+  const [lang, setLang] = useState<Lang>('ar');
+  useEffect(() => {
+    setLang(getLang());
+    const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
+    window.addEventListener('contech.lang-changed', onChange);
+    return () => window.removeEventListener('contech.lang-changed', onChange);
+  }, []);
   useEffect(() => {
     fetchPlatformOverview().then(setOverview);
   }, [status, tenderId, swarmRun]);
@@ -178,8 +186,8 @@ export default function Dashboard() {
         {status === 'completed' && score !== null && (
           <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3">
             <Activity className="h-5 w-5 shrink-0" />
-            <span className="text-sm font-semibold">
-              Audit complete — technical compliance score: <span className="font-black">{score}/100</span>. Studio workspaces below now reflect live agent output.
+            <span className="text-sm font-semibold" dir="rtl">
+              {t("auditComplete", lang)}: <span className="font-black">{score}/100</span>
             </span>
           </div>
         )}
@@ -198,7 +206,7 @@ export default function Dashboard() {
               <Gauge className="h-4 w-4 text-white" />
             </span>
             <div>
-              <h2 className="text-lg font-black text-slate-900 leading-tight">Command Center</h2>
+              <h2 className="text-lg font-black text-slate-900 leading-tight">{t("commandCenter", lang)}</h2>
               <p className="text-xs text-slate-500">Portfolio analytics, cluster telemetry &amp; LLM gateway economics</p>
             </div>
           </div>
@@ -220,7 +228,7 @@ export default function Dashboard() {
                 <Radar className="h-4 w-4 text-white" />
               </span>
               <div>
-                <h2 className="text-lg font-black text-slate-900 leading-tight">Multi-Agent Swarm Orchestration</h2>
+                <h2 className="text-lg font-black text-slate-900 leading-tight">{t("swarmTitle", lang)}</h2>
                 <p className="text-xs text-slate-500">LangGraph agent pipeline — click any node for agent detail</p>
               </div>
             </div>
@@ -264,7 +272,7 @@ export default function Dashboard() {
               <Layers className="h-4 w-4 text-white" />
             </span>
             <div>
-              <h2 className="text-lg font-black text-slate-900 leading-tight">Studio Workspaces</h2>
+              <h2 className="text-lg font-black text-slate-900 leading-tight">{t("studioWorkspacesTitle", lang)}</h2>
               <p className="text-xs text-slate-500">Agent-driven engineering, commercial &amp; field operations studios</p>
             </div>
           </div>

@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 
 const API = 'http://localhost:8000';
+import { t, getLang, type Lang } from '../lib/i18n';
+import { useState as useReactState, useEffect as useReactEffect } from 'react';
 
 interface DraftSection {
   requirement_id: number;
@@ -41,6 +43,13 @@ const TYPE_META: Record<string, { label: string; cls: string }> = {
 };
 
 export const ProposalDraftingStudio: React.FC<{ tenderId: number }> = ({ tenderId }) => {
+  const [lang, setLang] = useReactState<Lang>('ar');
+  useReactEffect(() => {
+    setLang(getLang());
+    const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
+    window.addEventListener('contech.lang-changed', onChange);
+    return () => window.removeEventListener('contech.lang-changed', onChange);
+  }, []);
   const [draft, setDraft] = useState<DraftPackage | null>(null);
   const [loading, setLoading] = useState(false);
   const [enriching, setEnriching] = useState(false);
@@ -74,7 +83,7 @@ export const ProposalDraftingStudio: React.FC<{ tenderId: number }> = ({ tenderI
             <PenLine className="h-4 w-4 text-white" />
           </span>
           <div>
-            <h2 className="text-lg font-black text-white leading-tight">Proposal Drafting Assistant</h2>
+            <h2 className="text-lg font-black text-white leading-tight">{t("draftingAssistant", lang)}</h2>
             <p className="text-xs text-slate-400">
               Compliance responses, method-statement skeletons &amp; document checklist — drafted from the pinned criteria.
             </p>
@@ -89,12 +98,12 @@ export const ProposalDraftingStudio: React.FC<{ tenderId: number }> = ({ tenderI
           <button onClick={() => load(true)} disabled={enriching || loading}
             className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-3 py-2 rounded-lg border border-violet-500/40 text-violet-300 hover:bg-violet-500/10 disabled:opacity-50 transition">
             {enriching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            LLM Enrich
+            {t("llmEnrich", lang)}
           </button>
           <button onClick={() => load(false)} disabled={loading}
             className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 disabled:opacity-50 transition">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
-            Regenerate
+            {t("regenerate", lang)}
           </button>
         </div>
       </div>

@@ -41,6 +41,11 @@ interface ProposalEval {
   partial_coverage: Array<{ clause_id: string; similarity: number }>;
 }
 
+const STATUS_LABEL_KEY: Record<string, Parameters<typeof t>[0]> = {
+  PROCESSED: 'statusProcessed', PROCESSING: 'statusProcessing',
+  REGISTERED: 'statusRegistered', FAILED: 'statusFailed',
+};
+
 interface UploadState {
   name: string;
   progress: number;   // 0-100 (نسبة البايتات المرسلة)
@@ -237,7 +242,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
             <Boxes className="h-4 w-4 text-white" />
           </span>
           <div>
-            <h2 className="text-lg font-black text-white leading-tight">Document Library &amp; Ingestion</h2>
+            <h2 className="text-lg font-black text-white leading-tight">{t("documentLibrary", lang)}</h2>
             <p className="text-xs text-slate-400">
               <span className="font-mono font-bold text-teal-300">{documents.length}</span> {t("files", lang)} ·
               <span className="font-mono font-bold text-emerald-300"> {processed}</span> {t("processed", lang)} ·
@@ -416,11 +421,11 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
           <table className="min-w-full divide-y divide-slate-800 text-sm">
             <thead className="bg-slate-950/60">
               <tr>
-                <th className="px-3 py-2.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Document</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-44">Category</th>
-                <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-28">Status</th>
-                <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-28">Pages / Chars</th>
-                <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-44">Criteria Gate</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("files", lang)}</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-44">{t("criteria", lang)}</th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-28">{t("processed", lang)}</th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-28">/</th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-44">{t("catEvaluation", lang)}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/70 bg-slate-900/40">
@@ -450,7 +455,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase ${status.cls}`}>
-                        <StatusIcon className="h-3.5 w-3.5" /> {doc.status === 'PROCESSING' ? 'PROCESSING…' : doc.status}
+                        <StatusIcon className="h-3.5 w-3.5" /> {t(STATUS_LABEL_KEY[doc.status] || 'statusRegistered', lang)}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-center font-mono text-xs text-slate-400">
@@ -460,13 +465,13 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
                       <div className="flex items-center justify-center gap-1.5">
                         {pinned === doc.id ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-amber-300">
-                            <Pin className="h-3.5 w-3.5" /> Pinned Gate
+                            <Pin className="h-3.5 w-3.5" /> {t("pinnedGate", lang)}
                           </span>
                         ) : (
                           <button onClick={() => pinCriteria(doc.id)}
                             title="ثبّت هذه الوثيقة كمعيار تقييم ملزم للمنافسة"
                             className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 transition">
-                            <MapPin className="h-3 w-3" /> Pin
+                            <MapPin className="h-3 w-3" /> {t("pinAction", lang)}
                           </button>
                         )}
                         {confirmDeleteId === doc.id ? (

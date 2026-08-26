@@ -3,6 +3,8 @@
 import React from 'react';
 import { Activity, ShieldAlert, HeartPulse, Server, Radio, Bot } from 'lucide-react';
 import type { PlatformOverview } from '../lib/analytics_client';
+import { t, getLang, type Lang } from '../lib/i18n';
+import { useState, useEffect } from 'react';
 
 interface Props {
   overview: PlatformOverview | null;
@@ -10,6 +12,13 @@ interface Props {
 
 /** مراقب النظام الحي — حالة الوكلاء والمزودين وآخر نشاط حقيقي من سجل التدقيق. */
 export const SystemHealthMonitor: React.FC<Props> = ({ overview }) => {
+  const [lang, setLang] = useState<Lang>('ar');
+  useEffect(() => {
+    setLang(getLang());
+    const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
+    window.addEventListener('contech.lang-changed', onChange);
+    return () => window.removeEventListener('contech.lang-changed', onChange);
+  }, []);
   const sys = overview?.system;
   const activity = overview?.recent_activity || [];
   const p = overview?.portfolio;
@@ -19,7 +28,7 @@ export const SystemHealthMonitor: React.FC<Props> = ({ overview }) => {
       <div className="bg-black/40 p-4 border-b border-slate-700 flex flex-wrap justify-between items-center gap-x-3 gap-y-2">
         <h3 className="text-lg font-bold flex items-center text-teal-400 tracking-wide flex-1 min-w-0">
           <Activity className="mr-3 shrink-0" size={22} />
-          <span>System Telemetry &amp; Activity</span>
+          <span>{t("systemTelemetry", lang)}</span>
         </h3>
         <div className="flex items-center text-[10px] uppercase tracking-widest font-bold bg-teal-900/40 text-teal-400 border border-teal-500/30 px-3 py-1.5 rounded-full shadow-sm shrink-0">
           <Radio size={14} className="mr-1.5 animate-pulse" /> Live
@@ -31,7 +40,7 @@ export const SystemHealthMonitor: React.FC<Props> = ({ overview }) => {
 
           <div className="bg-slate-800/80 p-4 rounded-lg border border-slate-700 shadow-inner flex flex-col items-start justify-between gap-2 min-w-0 overflow-hidden">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center min-w-0">
-              <HeartPulse size={14} className="mr-2 text-teal-400 shrink-0"/> Cluster Status
+              <HeartPulse size={14} className="mr-2 text-teal-400 shrink-0"/> {t("clusterStatus", lang)}
             </span>
             <span className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-500/15 px-3 py-1 min-w-0">
               <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-400 animate-pulse" />
@@ -41,14 +50,14 @@ export const SystemHealthMonitor: React.FC<Props> = ({ overview }) => {
 
           <div className="bg-slate-800/80 p-4 rounded-lg border border-slate-700 shadow-inner flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center mb-2">
-              <Bot size={14} className="mr-2 text-blue-400"/> Active Agents
+              <Bot size={14} className="mr-2 text-blue-400"/> {t("activeAgents", lang)}
             </span>
             <span className="text-2xl font-black text-white font-mono tracking-tight">{sys?.agents_enabled ?? '—'}</span>
           </div>
 
           <div className="bg-slate-800/80 p-4 rounded-lg border border-slate-700 shadow-inner flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center mb-2">
-              <Activity size={14} className="mr-2 text-emerald-400"/> Swarms Run
+              <Activity size={14} className="mr-2 text-emerald-400"/> {t("swarmsRun", lang)}
             </span>
             <div className="flex items-end whitespace-nowrap">
               <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight">
@@ -59,7 +68,7 @@ export const SystemHealthMonitor: React.FC<Props> = ({ overview }) => {
 
           <div className="bg-slate-800/80 p-4 rounded-lg border border-slate-700 shadow-inner flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center mb-2">
-              <Server size={14} className="mr-2 text-violet-400"/> LLM Providers On
+              <Server size={14} className="mr-2 text-violet-400"/> {t("providersOn", lang)}
             </span>
             <span className={`text-2xl font-black font-mono tracking-tight ${(sys?.providers_enabled ?? 0) > 0 ? 'text-white' : 'text-rose-400'}`}>
               {sys?.providers_enabled ?? '—'}
@@ -71,10 +80,10 @@ export const SystemHealthMonitor: React.FC<Props> = ({ overview }) => {
         {/* Real audit-log activity */}
         <div>
           <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">
-            Recent Audit Activity — live from database
+            {t("recentAuditActivity", lang)}
           </h4>
           {activity.length === 0 ? (
-            <p className="text-sm text-slate-500 py-4 text-center">No activity yet.</p>
+            <p className="text-sm text-slate-500 py-4 text-center">{t("noActivity", lang)}</p>
           ) : (
             <div className="flex flex-col space-y-2">
               {activity.map((a) => (

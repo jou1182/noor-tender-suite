@@ -3,6 +3,8 @@
 import React from 'react';
 import { TrendingUp, AlertTriangle, FileCheck, FolderKanban, DownloadCloud } from 'lucide-react';
 import type { PlatformOverview } from '../lib/analytics_client';
+import { t, getLang, type Lang } from '../lib/i18n';
+import { useState, useEffect } from 'react';
 
 interface Props {
   overview: PlatformOverview | null;
@@ -10,6 +12,13 @@ interface Props {
 
 /** بطاقة المحفظة الحية — أرقام حقيقية من قاعدة البيانات، لا placeholders. */
 export const ExecutivePortfolioDashboard: React.FC<Props> = ({ overview }) => {
+  const [lang, setLang] = useState<Lang>('ar');
+  useEffect(() => {
+    setLang(getLang());
+    const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
+    window.addEventListener('contech.lang-changed', onChange);
+    return () => window.removeEventListener('contech.lang-changed', onChange);
+  }, []);
   const p = overview?.portfolio;
   const dist: Record<string, number> = overview?.compliance_distribution || {};
   const totalRecords: number = Object.values(dist).reduce((a, b) => a + b, 0);
@@ -29,10 +38,10 @@ export const ExecutivePortfolioDashboard: React.FC<Props> = ({ overview }) => {
       <div className="bg-black/40 p-5 border-b border-slate-700 flex flex-wrap justify-between items-center gap-x-3 gap-y-2">
         <h3 className="text-xl font-black flex items-center text-amber-400 tracking-wide flex-1 min-w-0">
           <TrendingUp className="mr-3 shrink-0" size={26} />
-          <span>Tender Portfolio — Live</span>
+          <span>{t("portfolioLive", lang)}</span>
         </h3>
         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 border border-slate-600 rounded-full px-3 py-1.5">
-          computed from your data
+          {t("computedFromData", lang)}
         </span>
       </div>
 
@@ -41,7 +50,7 @@ export const ExecutivePortfolioDashboard: React.FC<Props> = ({ overview }) => {
         <div className="grid grid-cols-2 @[40rem]:grid-cols-4 gap-3 mb-8">
           <div className="bg-slate-800/80 p-5 rounded-lg border border-slate-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Total Tenders</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{t("totalTenders", lang)}</span>
               <FolderKanban size={16} className="text-teal-400" />
             </div>
             <div className="whitespace-nowrap font-mono tabular-nums text-3xl font-black text-slate-100">{p?.tenders_total ?? '—'}</div>
@@ -52,7 +61,7 @@ export const ExecutivePortfolioDashboard: React.FC<Props> = ({ overview }) => {
 
           <div className="bg-slate-800/80 p-5 rounded-lg border border-slate-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Avg Technical Score</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{t("avgTechScore", lang)}</span>
               <FileCheck size={16} className="text-blue-400" />
             </div>
             <div className="whitespace-nowrap font-mono tabular-nums text-3xl font-black text-slate-100">
@@ -65,7 +74,7 @@ export const ExecutivePortfolioDashboard: React.FC<Props> = ({ overview }) => {
 
           <div className="bg-slate-800/80 p-5 rounded-lg border border-slate-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Documents Ingested</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{t("docsIngested", lang)}</span>
               <DownloadCloud size={16} className="text-violet-400" />
             </div>
             <div className="whitespace-nowrap font-mono tabular-nums text-3xl font-black text-slate-100">{p?.documents_ingested ?? '—'}</div>
@@ -76,7 +85,7 @@ export const ExecutivePortfolioDashboard: React.FC<Props> = ({ overview }) => {
 
           <div className="bg-amber-950/20 p-5 rounded-lg border border-amber-900/50">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-amber-500 uppercase tracking-widest font-bold">Critical Gaps</span>
+              <span className="text-[10px] text-amber-500 uppercase tracking-widest font-bold">{t("criticalGaps", lang)}</span>
               <AlertTriangle size={16} className="text-amber-500" />
             </div>
             <div className="whitespace-nowrap font-mono tabular-nums text-3xl font-black text-amber-500">{fail}</div>
@@ -87,11 +96,11 @@ export const ExecutivePortfolioDashboard: React.FC<Props> = ({ overview }) => {
         {/* Compliance distribution — real records only */}
         <div className="bg-slate-800/50 p-5 rounded-lg border border-slate-700">
           <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2">
-            Compliance Verdict Distribution ({totalRecords} records)
+            {t("complianceDistribution", lang)} ({totalRecords})
           </h4>
           {totalRecords === 0 ? (
             <p className="text-sm text-slate-500 py-4 text-center">
-              No audit results yet — launch the swarm on a tender to populate this chart.
+              {t("noAuditYet", lang)}
             </p>
           ) : (
             <>
