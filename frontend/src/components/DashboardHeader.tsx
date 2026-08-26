@@ -102,8 +102,15 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
   /** «بدء من جديد» — يمسح الجلسة الحالية فقط (لا يحذف أي بيانات) ويبدأ من أول منافسة */
   const handleResetSession = async () => {
     sessionStorage.removeItem('contech.activeTenderId');
+    // نبدأ من أول منافسة في القائمة دائماً
     const list = await load();
-    if (list.length > 0) onTenantChange(tenantFromTender(list[0]));
+    if (list.length > 0) {
+      const first = tenantFromTender(list[0]);
+      // إن كنا على نفس المنافسة، onTenantChange بنفس القيمة لن يعيد الرندر —
+      // لذا نطلق حدث session-reset الذي يصفّر حالات الشاشة كلها (epoch)
+      onTenantChange(first);
+    }
+    window.dispatchEvent(new CustomEvent('contech.session-reset'));
     setMenuOpen(false);
   };
 

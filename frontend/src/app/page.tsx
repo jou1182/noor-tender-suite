@@ -67,6 +67,8 @@ const STUDIO_TABS: { key: StudioTab; label: string; icon: React.ElementType }[] 
 export default function Dashboard() {
   const [tenderId, setTenderId] = useState<number>(1);
   const [swarmRun, setSwarmRun] = useState(0);
+  // epoch الجلسة: يتزايد عند «بدء من جديد» — يعيد تهيئة كل مكونات الشاشة
+  const [sessionEpoch, setSessionEpoch] = useState(0);
   const [tenant, setTenant] = useState<TenantContext>({ id: '1', name: 'Workspace', project: 'Loading…', phase: 'Draft', role: 'Lead Architect' });
   const [activeTab, setActiveTab] = useState<StudioTab>('compliance');
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -93,6 +95,22 @@ export default function Dashboard() {
     const idNum = Number(tenant.id);
     if (!Number.isNaN(idNum)) setTenderId(idNum);
   }, [tenant.id]);
+
+  // «بدء من جديد»: تصفير كامل لحالة الجلسة + إعادة تحميل بيانات المنافسة الحالية
+  useEffect(() => {
+    const onReset = () => {
+      setSessionEpoch((e) => e + 1);
+      setSwarmRun(0);
+      setLaunchError(null);
+      // إعادة جلب حالة المنافسة الحالية بعد التصفير
+      if (tenderId) {
+        // إجبار useTenderAudit على إعادة الجلب عبر تغيير طفيف مؤجل
+        setTimeout(() => setSwarmRun((v) => v), 0);
+      }
+    };
+    window.addEventListener('contech.session-reset', onReset);
+    return () => window.removeEventListener('contech.session-reset', onReset);
+  }, [tenderId]);
 
   const handleLaunchSwarm = async () => {
     if (launching) return;
@@ -193,11 +211,11 @@ export default function Dashboard() {
         )}
 
         <section className="space-y-4">
-          <DocumentLibrary tenderId={tenderId} />
+          <DocumentLibrary key={`dl-${tenderId}-${sessionEpoch}`} tenderId={tenderId} />
         </section>
 
         <section className="space-y-4">
-          <ProposalDraftingStudio tenderId={tenderId} />
+          <ProposalDraftingStudio key={`pd-${tenderId}-${sessionEpoch}`} tenderId={tenderId} />
         </section>
 
         <section className="space-y-4">
