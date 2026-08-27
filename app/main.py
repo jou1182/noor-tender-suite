@@ -114,6 +114,15 @@ def create_tables():
     seed_result = seed_platform()
     print(f"[STARTUP] Database tables ensured. Platform seed: {seed_result}")
 
+    # حارس المستندات العالقة: يعيد جدولة أي مستند ظل في PROCESSING/REGISTERED
+    # أكثر من الحد (الخادم أُعيد تشغيله أثناء المعالجة مثلاً) — ثم يدور في الخلفية.
+    from app.services.doc_reaper import startup_sweep, start_reaper
+
+    recovered = startup_sweep()
+    if recovered:
+        print(f"[STARTUP] doc-reaper: requeued {recovered} stuck document(s)")
+    start_reaper()
+
 @app.post("/api/v1/audits/{tender_id}/trigger")
 async def trigger_audit(
     tender_id: int, 

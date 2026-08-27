@@ -150,6 +150,7 @@ const DICT = {
   statusFailed: { ar: "فشل", en: "FAILED" },
   pinnedGate: { ar: "معيار مثبّت", en: "Pinned Gate" },
   pinAction: { ar: "تثبيت", en: "Pin" },
+  retryProcess: { ar: "إعادة المعالجة", en: "Reprocess" },
 } as const;
 
 export type DictKey = keyof typeof DICT;

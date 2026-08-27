@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  FolderSearch, UploadCloud, FileText, Loader2, MapPin, Pin,
+  FolderSearch, UploadCloud, FileText, Loader2, MapPin, Pin, RotateCcw,
   Search, CheckCircle, XCircle, FileWarning, Boxes, Database, Trash2, CheckCircle2,
   ClipboardCheck, TrendingUp, AlertTriangle, RefreshCw,
 } from 'lucide-react';
@@ -68,6 +68,7 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
   const [deleting, setDeleting] = useState<number | null>(null);
   const [evaluation, setEvaluation] = useState<ProposalEval | null>(null);
   const [evaluating, setEvaluating] = useState(false);
+  const [reprocessing, setReprocessing] = useState<number | null>(null);
   const [evalError, setEvalError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
   const proposalInput = useRef<HTMLInputElement>(null);
@@ -94,10 +95,10 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
 
   useEffect(() => { load(); }, [load]);
 
-  // استطلاع دوري طالما هناك ملفات قيد المعالجة (المعالجة الآن في الخلفية)
+  // استطلاع دوري طالما هناك ملفات قيد المعالجة أو فشلت (المعالجة الآن في الخلفية)
   useEffect(() => {
-    const anyProcessing = documents.some((d) => d.status === 'PROCESSING' || d.status === 'REGISTERED');
-    if (!anyProcessing) return;
+    const anyPending = documents.some((d) => d.status === 'PROCESSING' || d.status === 'REGISTERED' || d.status === 'FAILED');
+    if (!anyPending) return;
     const t = setInterval(() => load(), 2500);
     return () => clearInterval(t);
   }, [documents, load]);
@@ -181,6 +182,16 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
     });
     setPinned(docId);
     await load();
+  };
+
+  const retryProcess = async (docId: number) => {
+    setReprocessing(docId);
+    try {
+      await fetch(`${API}/api/v1/documents/${docId}/process`, { method: 'POST' });
+    } finally {
+      setReprocessing(null);
+      await load();
+    }
   };
 
   const deleteDoc = async (docId: number) => {
@@ -472,6 +483,16 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
                             title="ثبّت هذه الوثيقة كمعيار تقييم ملزم للمنافسة"
                             className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 transition">
                             <MapPin className="h-3 w-3" /> {t("pinAction", lang)}
+                          </button>
+                        )}
+                        {doc.status === 'FAILED' && (
+                          <button onClick={() => retryProcess(doc.id)} disabled={reprocessing === doc.id}
+                            title="أعد المعالجة (استخراج النص والتصنيف وإعادة الفهرسة)"
+                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10 transition disabled:opacity-50">
+                            {reprocessing === doc.id
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <RotateCcw className="h-3 w-3" />}
+                            {reprocessing === doc.id ? t("processingBg", lang) : t("retryProcess", lang)}
                           </button>
                         )}
                         {confirmDeleteId === doc.id ? (
