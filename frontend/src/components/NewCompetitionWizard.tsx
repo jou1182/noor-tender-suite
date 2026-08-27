@@ -36,6 +36,7 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
   const [files, setFiles] = useState<File[]>([]);
   const [launchNow, setLaunchNow] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0); // 0..100 أثناء الرفع
   const [error, setError] = useState('');
   const [created, setCreated] = useState<TenderSummary | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,7 +44,7 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
   useEffect(() => {
     if (open) {
       setStep(1); setTitle(''); setClient(''); setFiles([]);
-      setLaunchNow(false); setError(''); setCreated(null);
+      setLaunchNow(false); setError(''); setCreated(null); setUploadProgress(0);
     }
   }, [open]);
 
@@ -54,13 +55,13 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
     if (!list) return;
     const incoming = Array.from(list);
     if (incoming.length === 0) return;
-    setFiles((prev) => {
-      const names = new Set(prev.map((f) => f.name + f.size));
-      const fresh = incoming.filter((f) => !names.has(f.name + f.size));
+    const names = new Set(files.map((f) => f.name + f.size));
+    const fresh = incoming.filter((f) => !names.has(f.name + f.size));
+    if (fresh.length > 0) {
+      setFiles((prev) => [...prev, ...fresh]);
       setJustPicked(fresh.length);
-      setTimeout(() => setJustPicked(0), 2500);
-      return [...prev, ...fresh];
-    });
+      window.setTimeout(() => setJustPicked(0), 2500);
+    }
   };
 
   const canNext1 = title.trim().length >= 3;
@@ -70,11 +71,18 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
   const finish = async () => {
     setBusy(true);
     setError('');
+    setUploadProgress(0);
     try {
       // 1) إنشاء المنافسة باسمها الصحيح
       const tender = await createTender(title.trim(), client.trim() || '—');
-      // 2) رفع الملفات إليها
-      await uploadTenderFiles(tender.id, files, hasXer);
+      // 2) رفع الملفات إليها — متوازٍ مع مؤشر تقدم حقيقي
+      const total = files.length;
+      await Promise.all(
+        files.map(async (file, i) => {
+          await uploadTenderFiles(tender.id, [file], file.name.toLowerCase().endsWith('.xer'));
+          setUploadProgress(Math.round(((i + 1) / total) * 100));
+        }),
+      );
       // 3) إطلاق السرب؟ (اختياري — الافتراضي لا: أضف عرض الفريق أولاً)
       if (launchNow && hasXer) {
         await launchTenderSwarm(tender.id);
@@ -86,6 +94,7 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
       setError(e instanceof Error ? e.message : 'فشل إنشاء المنافسة');
     } finally {
       setBusy(false);
+      setUploadProgress(0);
     }
   };
 
@@ -211,6 +220,18 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
                 {client && <p className="text-xs text-slate-400">{client}</p>}
                 <p className="text-xs text-teal-300">{files.length} ملف جاهز</p>
               </div>
+
+              {busy && uploadProgress > 0 && (
+                <div className="space-y-1.5" dir="rtl">
+                  <p className="text-xs font-bold text-teal-300">جارٍ رفع الملفات… {uploadProgress}%</p>
+                  <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-teal-500 to-blue-600 transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <button onClick={() => setLaunchNow(false)}
