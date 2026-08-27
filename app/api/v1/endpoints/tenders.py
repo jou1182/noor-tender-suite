@@ -150,7 +150,7 @@ async def launch_tender_swarm(
     db: Session = Depends(get_db),
 ):
     """
-    زر «انطلق أيها الوكلاء» — يطلق سرب اللانغجراف على منافسة موجودة أصلاً.
+    زر «إنطلقوا أيها الوكلاء» — يطلق سرب اللانغجراف على منافسة موجودة أصلاً.
     يعتمد على المستندات المسجلة في tender_documents (من رفع سابق عبر /audits/trigger).
     """
     tender = db.query(Tender).filter(Tender.id == tender_id).first()

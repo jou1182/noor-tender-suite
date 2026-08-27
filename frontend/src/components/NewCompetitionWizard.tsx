@@ -49,11 +49,17 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
 
   if (!open) return null;
 
-  const addFiles = (list: FileList | null) => {
+  const [justPicked, setJustPicked] = useState(0);
+  const addFiles = (list: FileList | File[] | null) => {
     if (!list) return;
+    const incoming = Array.from(list);
+    if (incoming.length === 0) return;
     setFiles((prev) => {
       const names = new Set(prev.map((f) => f.name + f.size));
-      return [...prev, ...Array.from(list).filter((f) => !names.has(f.name + f.size))];
+      const fresh = incoming.filter((f) => !names.has(f.name + f.size));
+      setJustPicked(fresh.length);
+      setTimeout(() => setJustPicked(0), 2500);
+      return [...prev, ...fresh];
     });
   };
 
@@ -152,15 +158,28 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
           {/* الخطوة 2: الملفات */}
           {step === 2 && (
             <div className="space-y-3">
-              <button onClick={() => inputRef.current?.click()}
+              <button type="button" onClick={() => inputRef.current?.click()}
                 className="w-full border-2 border-dashed border-slate-600 hover:border-teal-500/60 rounded-xl p-6 text-center transition group">
                 <UploadCloud className="h-8 w-8 text-slate-500 group-hover:text-teal-400 mx-auto mb-2" />
                 <p className="text-sm font-bold text-slate-300">أضف ملفات كراسة المنافسة</p>
-                <p className="text-xs text-slate-500 mt-1">PDF للكراسة والملاحق + ملف XER للجدول الزمني إن وُجد</p>
+                <p className="text-xs text-slate-500 mt-1">PDF/DOCX/XLSX/XER — أو أرشيف ZIP واحد لكامل الكراسة (يُفكّ تلقائياً)</p>
               </button>
-              <input ref={inputRef} type="file" multiple hidden
-                accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.md,.csv,.xer"
-                onChange={(e) => { addFiles(e.target.files); if (inputRef.current) inputRef.current.value = ''; }} />
+              {justPicked > 0 && (
+                <p className="text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2" dir="rtl">
+                  ✓ أُضيف {justPicked} ملف — راجع القائمة أدناه ثم اضغط «التالي»
+                </p>
+              )}
+              <input ref={inputRef} type="file" multiple className="sr-only"
+                accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.md,.csv,.xer,.zip"
+                onChange={(e) => {
+                  const picked = e.target.files;
+                  if (picked && picked.length > 0) {
+                    // نسخ فوري لقائمة ثابتة قبل أي reset — FileList حية وتتبخر عند reset
+                    addFiles(Array.from(picked));
+                  }
+                  // reset آمن الآن (بعد النسخ) لإتاحة إعادة اختيار نفس الملف
+                  if (inputRef.current) inputRef.current.value = '';
+                }} />
 
               {files.length > 0 && (
                 <div className="rounded-lg border border-slate-700 bg-slate-950/50 divide-y divide-slate-800 max-h-48 overflow-y-auto">
@@ -235,7 +254,7 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
           {step === 2 && (
             <button onClick={() => setStep(3)} disabled={!canNext2}
               className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-black bg-gradient-to-r from-teal-500 to-blue-600 text-white disabled:opacity-40">
-              التالي: الإطلاق <ArrowRight className="h-4 w-4" />
+              التالي: الإطلاق ({files.length} ملف) <ArrowRight className="h-4 w-4" />
             </button>
           )}
           {step === 3 && (

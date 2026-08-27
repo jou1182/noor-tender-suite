@@ -301,7 +301,7 @@ export default function Dashboard() {
                 ) : launching ? (
                   <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Launching…</>
                 ) : (
-                  <><Zap className="h-3.5 w-3.5" /> انطلق أيها الوكلاء</>
+                  <><Zap className="h-3.5 w-3.5" /> إنطلقوا أيها الوكلاء</>
                 )}
               </button>
               <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-full px-3 py-1.5">

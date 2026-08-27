@@ -4,9 +4,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Boxes, Building2, ChevronDown, UploadCloud, Menu, X, ShieldCheck, Radio,
-  Settings, Plus, Trash2, RefreshCw, Loader2, Check, RotateCcw, Languages,
+  Settings, Plus, Trash2, RefreshCw, Loader2, Check, RotateCcw, Languages, PenLine,
 } from 'lucide-react';
-import { TenderSummary, listTenders, createTender, deleteTender } from '../lib/tenders_client';
+import { TenderSummary, listTenders, createTender, deleteTender, renameTender } from '../lib/tenders_client';
 import type { TenantContext } from '../lib/demoData';
 import { t, getLang, setLang, type Lang } from '../lib/i18n';
 
@@ -42,6 +42,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
   const [newTitle, setNewTitle] = useState('');
   const [newClient, setNewClient] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [renamingId, setRenamingId] = useState<number | null>(null);
+  const [renameTitle, setRenameTitle] = useState('');
+  const [renameClient, setRenameClient] = useState('');
+  const [renaming, setRenaming] = useState(false);
   const [lang, setLangState] = useState<Lang>('ar');
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -101,6 +105,23 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
       sessionStorage.setItem('contech.activeTenderId', tenant.id);
     }
   }, [tenant.id]);
+
+  /** حفظ إعادة تسمية منافسة من القائمة */
+  const handleRenameSave = async (id: number) => {
+    if (!renameTitle.trim() || renaming) return;
+    setRenaming(true);
+    try {
+      const updated = await renameTender(id, renameTitle.trim(), renameClient.trim());
+      await load();
+      // مزامنة الهوية النشطة إن كانت هي المعنية
+      if (String(id) === tenant.id) onTenantChange(tenantFromTender(updated));
+      setRenamingId(null);
+    } catch {
+      /* الخطأ يظهر ببقاء وضع التحرير */
+    } finally {
+      setRenaming(false);
+    }
+  };
 
   /** «بدء من جديد» — يمسح الجلسة الحالية فقط (لا يحذف أي بيانات) ويبدأ من أول منافسة */
   const handleResetSession = async () => {

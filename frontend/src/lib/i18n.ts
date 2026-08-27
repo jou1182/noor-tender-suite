@@ -86,7 +86,7 @@ const DICT = {
   // ---------- Swarm ----------
   swarmTitle: { ar: "تنسيق سرب الوكلاء", en: "Multi-Agent Swarm Orchestration" },
   swarmHint: { ar: "خط أنابيب LangGraph — انقر أي وكيل لتفاصيله", en: "LangGraph agent pipeline — click any node for detail" },
-  launchSwarm: { ar: "انطلق أيها الوكلاء", en: "Launch Agents" },
+  launchSwarm: { ar: "إنطلقوا أيها الوكلاء", en: "Launch Agents" },
   swarmRunning: { ar: "السرب يعمل…", en: "Swarm Running…" },
   launching: { ar: "جارٍ الإطلاق…", en: "Launching…" },
   liveSse: { ar: "بث حي", en: "Live SSE" },

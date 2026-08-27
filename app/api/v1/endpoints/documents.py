@@ -27,6 +27,8 @@ ALLOWED_EXTENSIONS = {
 }
 MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024  # 2GB per file
 
+from app.services.zip_extractor import extract_zip_to_docs, is_zip
+
 
 def _doc_folder(tender_id: int) -> str:
     folder = os.path.join(UPLOAD_ROOT, f"tender_{tender_id}")
@@ -99,6 +101,47 @@ async def upload_document(
     if force_category and force_category not in ALLOWED_CATEGORIES:
         raise HTTPException(status_code=422, detail=f"invalid doc_category: {force_category}")
 
+    # ---- أرشيف ZIP: استخراج فوري واستيعاب المحتويات المفيدة ثم حذف الأرشيف ----
+    if is_zip(filename):
+        result = extract_zip_to_docs(dest, folder)
+        if result["error"] and not result["accepted"]:
+            raise HTTPException(status_code=422, detail=result["error"])
+
+        from app.services.document_pipeline import process_document
+
+        doc_ids: list = []
+        for extracted_path in result["accepted"]:
+            ex_name = os.path.basename(extracted_path)
+            ex_ext = os.path.splitext(ex_name)[1].lower()
+            ex_size = os.path.getsize(extracted_path)
+            ex_doc = PackageDocument(
+                tender_id=tender_id,
+                filename=ex_name,
+                rel_path=extracted_path,
+                size_bytes=ex_size,
+                file_ext=ex_ext,
+                status="REGISTERED",
+                doc_category=force_category or "UNCATEGORIZED",
+                classification_confidence=1.0 if force_category else 0.0,
+                classification_signals="zip_extract" if not force_category else "manual_override+zip",
+            )
+            db.add(ex_doc)
+            db.commit()
+            db.refresh(ex_doc)
+            doc_ids.append(ex_doc.id)
+            background_tasks.add_task(process_document, ex_doc.id, ocr_enabled, force_category)
+
+        return {
+            "document": None,
+            "zip_extraction": {
+                "accepted": len(result["accepted"]),
+                "skipped": result["skipped"][:20],
+                "document_ids": doc_ids,
+                "note": "archive deleted after extraction — no storage duplication",
+            },
+            "description": description,
+        }
+
     doc = PackageDocument(
         tender_id=tender_id,
         filename=filename,
@@ -108,7 +151,7 @@ async def upload_document(
         status="REGISTERED",
         doc_category=force_category or "UNCATEGORIZED",
         classification_confidence=1.0 if force_category else 0.0,
-        classification_signals=f"manual_override" if force_category else "",
+        classification_signals="manual_override" if force_category else "",
     )
     db.add(doc)
     db.commit()

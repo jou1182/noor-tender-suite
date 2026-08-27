@@ -31,23 +31,13 @@ export async function createTender(title: string, clientName: string): Promise<T
   return res.json();
 }
 
-export async function renameTender(id: number, patch: { title?: string; client_name?: string }): Promise<TenderSummary> {
-  const res = await fetch(`${API_BASE}/api/v1/tenders/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(patch),
-  });
-  if (!res.ok) throw new Error(`Failed to update tender (HTTP ${res.status})`);
-  return res.json();
-}
-
 /** يحذف المنافسة وكل ما يرتبط بها نهائياً — يجب أن يكون المستخدم قد أكّد في الواجهة. */
 export async function deleteTender(id: number): Promise<void> {
   const res = await fetch(`${API_BASE}/api/v1/tenders/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`Failed to delete tender (HTTP ${res.status})`);
 }
 
-/** زر «انطلق أيها الوكلاء» — يشعل السرب على منافسة موجودة. */
+/** زر «إنطلقوا أيها الوكلاء» — يشعل السرب على منافسة موجودة. */
 export async function launchTenderSwarm(
   id: number,
 ): Promise<{ tender_id: number; status: string; message: string }> {
@@ -74,4 +64,18 @@ export async function uploadTenderFiles(tenderId: number, files: File[], hasXer:
       throw new Error(body.detail || `فشل رفع ${file.name}`);
     }
   }
+}
+
+/** إعادة تسمية منافسة (العنوان و/أو اسم العميل). */
+export async function renameTender(tenderId: number, title: string, clientName?: string): Promise<TenderSummary> {
+  const res = await fetch(`${API_BASE}/api/v1/tenders/${tenderId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, ...(clientName !== undefined ? { client_name: clientName } : {}) }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `فشلت إعادة التسمية (${res.status})`);
+  }
+  return res.json();
 }
