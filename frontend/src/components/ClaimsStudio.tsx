@@ -23,9 +23,9 @@ interface Props {
 }
 
 export const ClaimsStudio: React.FC<Props> = ({ data }) => {
+  const [letter, setLetter] = useState(data?.draft_claim_letter ?? '');
+
   if (!data) return null;
-  
-  const [letter, setLetter] = useState(data.draft_claim_letter);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-8 animate-in fade-in zoom-in duration-500 overflow-hidden">

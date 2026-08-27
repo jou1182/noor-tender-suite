@@ -39,6 +39,7 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
   const [uploadProgress, setUploadProgress] = useState(0); // 0..100 أثناء الرفع
   const [error, setError] = useState('');
   const [created, setCreated] = useState<TenderSummary | null>(null);
+  const [justPicked, setJustPicked] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -50,7 +51,6 @@ export const NewCompetitionWizard: React.FC<Props> = ({ open, onClose, onCreated
 
   if (!open) return null;
 
-  const [justPicked, setJustPicked] = useState(0);
   const addFiles = (list: FileList | File[] | null) => {
     if (!list) return;
     const incoming = Array.from(list);
