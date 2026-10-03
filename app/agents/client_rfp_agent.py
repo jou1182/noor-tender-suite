@@ -9,11 +9,16 @@ and publishes the schema into the orchestration state for downstream agents
 from typing import Any, Dict, List
 
 from app.agents.errors import InsufficientInputError
+from app.parsers.arabic_text import fix_presentation_forms
 from app.parsers.pdf_parser import extract_text_from_pdf
 from app.parsers.rfp_clause_parser import RfpClauseParser
 
 
 def _read_document(path: str) -> str:
+    return fix_presentation_forms(_read_document_raw(path))
+
+
+def _read_document_raw(path: str) -> str:
     """Read an RFP document (real PDF, text-in-.pdf, or plain text) into raw text."""
     try:
         with open(path, "rb") as probe:
@@ -65,6 +70,8 @@ def client_rfp_agent(state: Dict[str, Any]) -> Dict[str, Any]:
         "personnel_requirements_total": 0,
         "penalty_thresholds": [],
         "critical_gate_count": 0,
+        "requirement_count": 0,
+        "referenced_standards": set(),
     }
 
     clause_id = 0
@@ -85,8 +92,11 @@ def client_rfp_agent(state: Dict[str, Any]) -> Dict[str, Any]:
         compliance_gates["personnel_requirements_total"] += gates.get("personnel_requirements_total", 0)
         compliance_gates["penalty_thresholds"].extend(gates.get("penalty_thresholds", []))
         compliance_gates["critical_gate_count"] += gates.get("critical_gate_count", 0)
+        compliance_gates["requirement_count"] += gates.get("requirement_count", 0)
+        compliance_gates["referenced_standards"].update(gates.get("referenced_standards", []))
 
     compliance_gates["sbc_standards"] = sorted(compliance_gates["sbc_standards"])
+    compliance_gates["referenced_standards"] = sorted(compliance_gates["referenced_standards"])
 
     return {
         "rfp_output": {

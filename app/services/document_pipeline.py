@@ -263,6 +263,9 @@ def process_document(document_id: int, ocr_enabled: bool = False, force_category
                 raise FileNotFoundError(f"Document file missing on disk: {path}")
             text, page_count, ocr_used = _extract_text(path, ext, ocr_enabled)
 
+        from app.parsers.arabic_text import fix_presentation_forms
+
+        text = fix_presentation_forms(text)
         classification = classify_document(doc.filename, text)
 
         if force_category:
