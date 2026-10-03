@@ -58,31 +58,43 @@ if (-not (Test-Path (Join-Path $frontend "node_modules"))) {
 function Find-DockerCli {
     $candidates = @(
         (Get-Command docker -ErrorAction SilentlyContinue).Source,
+        "$env:LOCALAPPDATA\Programs\DockerDesktop\resources\bin\docker.exe",
         "$env:ProgramFiles\Docker\Docker\resources\bin\docker.exe",
         "${env:ProgramFiles(x86)}\Docker\Docker\resources\bin\docker.exe"
     )
     return $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 }
 
-function Stop-DockerStack($port) {
-    # Killing com.docker.backend.exe would crash Docker Desktop itself -
-    # bring the project stack down properly instead.
+function Get-DockerPortContainers($port) {
+    # Names of the containers publishing this port (empty = none / engine unreachable).
+    $docker = Find-DockerCli
+    if (-not $docker) { return @() }
+    $names = & $docker ps --filter "publish=$port" --format "{{.Names}}" 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $names) { return @() }
+    return @($names)
+}
+
+function Stop-DockerPort($port) {
+    # Stop ONLY the containers publishing this exact port - never other apps' containers.
     $docker = Find-DockerCli
     if (-not $docker) { return $false }
-    Push-Location $ProjectDir
-    & $docker compose down 2>&1 | Out-Null
-    Pop-Location
+    $ids = & $docker ps -q --filter "publish=$port" 2>$null
+    if ($ids) { $ids | ForEach-Object { & $docker stop $_ 2>&1 | Out-Null } }
     Start-Sleep -Seconds 3
     return (-not (Get-PortOwner $port))
 }
 
-# ---------- Stop any stale Docker stack of this project BEFORE checking ports ----------
-$docker = Find-DockerCli
-if ($docker -and (Test-Path (Join-Path $ProjectDir "docker-compose.yml"))) {
-    Push-Location $ProjectDir
-    & $docker compose down 2>&1 | Out-Null
-    Pop-Location
-    Start-Sleep -Seconds 3
+# ---------- Proactively free 8000/3000 from stale Docker containers ----------
+foreach ($port in 8000, 3000) {
+    $owner = Get-PortOwner $port
+    if ($owner -and ($owner.Cmd -match "com\.docker\.backend|wslrelay")) {
+        $names = Get-DockerPortContainers $port
+        if ($names) {
+            Say "Port $port is held by Docker container(s): $($names -join ', ')" Yellow
+            Say "  Stopping only those container(s) - nothing else on Docker is touched." DarkGray
+            Stop-DockerPort $port | Out-Null
+        }
+    }
 }
 
 foreach ($port in 8000, 3000) {
@@ -91,15 +103,14 @@ foreach ($port in 8000, 3000) {
         Say "Port $port is currently in use by:" Yellow
         Say "  PID $($owner.Pid) :: $($owner.Cmd)" DarkGray
         $isDocker = ($owner.Cmd -match "com\.docker\.backend") -or ($owner.Cmd -match "wslrelay")
-        if ($owner.Cmd -match "wslrelay") { Say "  This is Docker Desktop's port relay (wslrelay) - stopping it frees the port only." Yellow }
-        elseif ($isDocker) { Say "  This is a Docker container stack - it will be stopped with 'docker compose down'." Yellow }
+        if ($isDocker) { Say "  Docker owns this port - only the container(s) publishing it will be stopped." Yellow }
         $ans = Read-Host "  Type K to stop it and continue with Noor Suite, or any other key to exit"
         if ($ans -ne "K" -and $ans -ne "k") {
             Say "Cancelled - nothing was changed." Red
             Read-Host "`n Press Enter to exit"; exit 0
         }
         $freed = $false
-        if ($isDocker) { $freed = Stop-DockerStack $port }
+        if ($isDocker) { $freed = Stop-DockerPort $port }
         if (-not $freed) {
             Stop-Process -Id $owner.Pid -Force -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 1
