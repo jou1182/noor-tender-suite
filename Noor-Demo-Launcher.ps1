@@ -76,6 +76,15 @@ function Stop-DockerStack($port) {
     return (-not (Get-PortOwner $port))
 }
 
+# ---------- Stop any stale Docker stack of this project BEFORE checking ports ----------
+$docker = Find-DockerCli
+if ($docker -and (Test-Path (Join-Path $ProjectDir "docker-compose.yml"))) {
+    Push-Location $ProjectDir
+    & $docker compose down 2>&1 | Out-Null
+    Pop-Location
+    Start-Sleep -Seconds 3
+}
+
 foreach ($port in 8000, 3000) {
     $owner = Get-PortOwner $port
     if ($owner) {
