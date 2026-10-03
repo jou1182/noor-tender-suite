@@ -55,18 +55,45 @@ if (-not (Test-Path (Join-Path $frontend "node_modules"))) {
 }
 
 # ---------- Ports 8000 and 3000: free only with your consent ----------
+function Find-DockerCli {
+    $candidates = @(
+        (Get-Command docker -ErrorAction SilentlyContinue).Source,
+        "$env:ProgramFiles\Docker\Docker\resources\bin\docker.exe",
+        "${env:ProgramFiles(x86)}\Docker\Docker\resources\bin\docker.exe"
+    )
+    return $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+}
+
+function Stop-DockerStack($port) {
+    # Killing com.docker.backend.exe would crash Docker Desktop itself -
+    # bring the project stack down properly instead.
+    $docker = Find-DockerCli
+    if (-not $docker) { return $false }
+    Push-Location $ProjectDir
+    & $docker compose down 2>&1 | Out-Null
+    Pop-Location
+    Start-Sleep -Seconds 3
+    return (-not (Get-PortOwner $port))
+}
+
 foreach ($port in 8000, 3000) {
     $owner = Get-PortOwner $port
     if ($owner) {
         Say "Port $port is currently in use by:" Yellow
         Say "  PID $($owner.Pid) :: $($owner.Cmd)" DarkGray
+        $isDocker = ($owner.Cmd -match "com\.docker\.backend")
+        if ($isDocker) { Say "  This is a Docker container stack - it will be stopped with 'docker compose down'." Yellow }
         $ans = Read-Host "  Type K to stop it and continue with Noor Suite, or any other key to exit"
         if ($ans -ne "K" -and $ans -ne "k") {
             Say "Cancelled - nothing was changed." Red
             Read-Host "`n Press Enter to exit"; exit 0
         }
-        Stop-Process -Id $owner.Pid -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 1
+        $freed = $false
+        if ($isDocker) { $freed = Stop-DockerStack $port }
+        if (-not $freed) {
+            Stop-Process -Id $owner.Pid -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 1
+        }
         Say "Process on port $port stopped." Green
     }
 }
