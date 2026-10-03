@@ -110,7 +110,7 @@ export const ProposalDraftingStudio: React.FC<{ tenderId: number }> = ({ tenderI
 
       {loading || enriching ? (
         <div className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-16 rounded-lg bg-slate-800/60 animate-pulse" />)}</div>
-      ) : !draft || draft.sections.length === 0 ? (
+      ) : !draft || !draft.sections || draft.sections.length === 0 ? (
         <div className="border-2 border-dashed border-slate-700 rounded-xl p-10 text-center">
           <AlertTriangle className="h-10 w-10 text-slate-600 mx-auto mb-3" />
           <p className="text-sm font-bold text-slate-300" dir="auto">{draft?.message || 'No binding requirements pinned yet.'}</p>

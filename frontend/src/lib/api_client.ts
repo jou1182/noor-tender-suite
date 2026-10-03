@@ -20,7 +20,14 @@ interface TokenCache {
 let tokenCache: TokenCache | null = null;
 
 function b64u(input: string): string {
-  return btoa(input).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  // Unicode-safe base64url: btoa() throws on non-Latin1 chars (e.g. Arabic workspace names).
+  const bytes = new TextEncoder().encode(input);
+  let bin = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 async function hmacSha256(message: string, secret: string): Promise<string> {
