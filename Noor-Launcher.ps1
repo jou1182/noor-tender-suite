@@ -97,6 +97,25 @@ if ($mode -eq "local") {
         Say "[3] Starting frontend on :3000 (new window)..." Cyan
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run dev" -WorkingDirectory $frontend
     }
+    # رادار المنافسات: خدمة مزامنة اختيارية على :4318 — لا تُعطل بقية المنصة إن غابت
+    $radar = Join-Path $ProjectDir "radar"
+    $radarHealth = "http://127.0.0.1:4318/health"
+    $nodeOk = $false
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        $parts = ((node --version 2>$null) -replace '[^0-9.]', '') -split '\.'
+        if ($parts.Count -ge 2) {
+            $major = [int]$parts[0]; $minor = [int]$parts[1]
+            $nodeOk = ($major -gt 22) -or ($major -eq 22 -and $minor -ge 13)
+        }
+    }
+    if ((Test-Path (Join-Path $radar "scripts\etimad-sync-service.mjs")) -and $nodeOk -and -not (Test-Url $radarHealth)) {
+        if (Test-Path (Join-Path $radar "node_modules")) {
+            Say "[3b] Starting Tender Radar sync service on :4318 (new window)..." Cyan
+            Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run start" -WorkingDirectory $radar
+        } else {
+            Say "Radar: node_modules missing - run once:  cd radar ; npm install" Yellow
+        }
+    }
 }
 
 # ---------------- Wait & open ----------------

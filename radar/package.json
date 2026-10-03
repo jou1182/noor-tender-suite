@@ -1,0 +1,17 @@
+{
+  "name": "noor-radar-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Tender Radar sync service — vendored verbatim from jou1182/tender-radar-local v1.0.0 (scripts/ only). Original code untouched; the suite bridges to it over http://127.0.0.1:4318.",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node scripts/etimad-sync-service.mjs",
+    "health": "node ../scripts/health-check.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}

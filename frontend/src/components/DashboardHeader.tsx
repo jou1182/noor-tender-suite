@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Boxes, Building2, ChevronDown, UploadCloud, Menu, X, ShieldCheck, Radio,
-  Settings, Plus, Trash2, RefreshCw, Loader2, Check, RotateCcw, Languages, PenLine, FileText,
+  Settings, Plus, Trash2, RefreshCw, Loader2, Check, RotateCcw, Languages, PenLine, FileText, Radar,
 } from 'lucide-react';
 import { TenderSummary, listTenders, createTender, deleteTender, renameTender } from '../lib/tenders_client';
 import type { TenantContext } from '../lib/demoData';
@@ -376,6 +376,16 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
               مولد العروض
             </button>
 
+            {/* رادار المنافسات */}
+            <button
+              onClick={() => router.push('/radar')}
+              title="رادار المنافسات — رصد منصة اعتماد"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-300 border border-slate-600 hover:border-cyan-500/50 hover:text-cyan-300 px-3 py-2.5 rounded-lg transition"
+            >
+              <Radar className="h-4 w-4" />
+              رادار المنافسات
+            </button>
+
             {/* تبديل اللغة عربي/إنجليزي */}
             <button
               onClick={toggleLang}
@@ -401,6 +411,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
             <button onClick={() => router.push('/proposal-builder')}
               className="p-2 rounded-lg text-slate-300 hover:text-teal-400 hover:bg-slate-800 transition" aria-label="مولد العروض">
               <FileText className="h-5 w-5" />
+            </button>
+            <button onClick={() => router.push('/radar')}
+              className="p-2 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-slate-800 transition" aria-label="رادار المنافسات">
+              <Radar className="h-5 w-5" />
             </button>
             <button onClick={() => router.push('/settings')}
               className="p-2 rounded-lg text-slate-300 hover:text-teal-400 hover:bg-slate-800 transition" aria-label="Settings">

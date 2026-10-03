@@ -108,6 +108,9 @@ app.include_router(proposal_evaluation_module.router, prefix="/api/v1/proposal-e
 from app.api.v1.endpoints import atpas as atpas_module
 app.include_router(atpas_module.router, prefix="/api/v1/atpas", tags=["atpas-proposal-builder"])
 
+from app.api.v1.endpoints import radar as radar_module
+app.include_router(radar_module.router, prefix="/api/v1/radar", tags=["tender-radar"])
+
 from app.db.base import Base
 from app.db.session import engine
 
