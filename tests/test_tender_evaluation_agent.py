@@ -93,14 +93,14 @@ def test_risk_mitigation_node_produces_actions():
     assert all("action" in a for a in register["actions"])
 
 
-def test_supervisor_registration_on_graph(rfp_file):
+def test_supervisor_registration_on_graph(rfp_file, xer_file):
     from app.agents.graph import build_orchestrator
 
     graph = build_orchestrator()
     compiled = graph  # build_orchestrator() already registers the supervisor + compiles
 
     # Structural smoke test: invoke the full graph and assert the evaluation key.
-    result = compiled.invoke({"tender_id": 999, "rfp_documents": [rfp_file]})
+    result = compiled.invoke({"tender_id": 999, "rfp_documents": [rfp_file], "schedule_file": xer_file})
     assert "tender_evaluation" in result, "tender_evaluation missing from graph state"
 
     evaluation = result["tender_evaluation"]

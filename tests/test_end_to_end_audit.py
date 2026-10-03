@@ -6,7 +6,6 @@ from app.agents.errors import InsufficientInputError
 from app.agents.graph import build_orchestrator
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-XER = os.path.join(ROOT, "sample_data", "Schedule.xer")
 
 
 class TestEndToEndAudit(unittest.TestCase):
@@ -15,6 +14,7 @@ class TestEndToEndAudit(unittest.TestCase):
             build_orchestrator().invoke({"tender_id": 999})
 
     def test_full_swarm_orchestration_on_real_sample(self):
+        from tests.conftest import SAMPLE_XER_TEXT
         import tempfile
         from tests.conftest import SAMPLE_RFP_TEXT
 
@@ -22,8 +22,11 @@ class TestEndToEndAudit(unittest.TestCase):
             rfp = os.path.join(tmp, "rfp.txt")
             with open(rfp, "w", encoding="utf-8") as fh:
                 fh.write(SAMPLE_RFP_TEXT)
+            xer = os.path.join(tmp, "schedule.xer")
+            with open(xer, "w", encoding="utf-8") as fh:
+                fh.write(SAMPLE_XER_TEXT)
             final_state = build_orchestrator().invoke(
-                {"tender_id": 999, "rfp_documents": [rfp], "schedule_file": XER}
+                {"tender_id": 999, "rfp_documents": [rfp], "schedule_file": xer}
             )
         for key in ("rfp_output", "boq_output", "methodology_output", "p6_output", "standards_output",
                     "qaqc_output", "hse_output", "discrepancy_output", "red_team_output", "arbitrator_output"):

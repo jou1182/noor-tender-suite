@@ -8,12 +8,18 @@ from app.agents.dossier_agent import dossier_agent
 
 class TestFullSystemE2E(unittest.TestCase):
     def test_end_to_end_pipeline_simulation(self):
+        import os, tempfile
+        from tests.conftest import SAMPLE_XER_TEXT
+        xer = os.path.join(tempfile.mkdtemp(), "schedule.xer")
+        with open(xer, "w", encoding="utf-8") as fh:
+            fh.write(SAMPLE_XER_TEXT)
+
         """
         Simulates an End-to-End master integration run traversing the critical path of the LangGraph swarm.
         Verifies that downstream data cleanly maps from BOQ extraction through to cryptographic sealing.
         """
         # Initialize an empty Orchestration State dict
-        master_state: Dict[str, Any] = {}
+        master_state: Dict[str, Any] = {"schedule_file": xer}
         
         # 1. Vendor & Procurement Evaluation
         vendor_res = vendor_agent(master_state)

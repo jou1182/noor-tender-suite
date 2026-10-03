@@ -1,10 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+import logging
 import os
 import time
 
-app = FastAPI(title="ConTech AI Platform Master API", version="1.0.0")
+logger = logging.getLogger("contech.swarm")
+logging.basicConfig(level=logging.INFO)
+
+app =FastAPI(title="ConTech AI Platform Master API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -205,24 +209,31 @@ def _run_swarm_audit(tender_id: int, rfp_paths: list, schedule_path: str, client
         tender.technical_score = arb.get("final_score")
         tender.status = "completed"
 
-        for req in final_state.get("extracted_requirements", []):
-            if not isinstance(req, dict):
-                continue
-            rec = ComplianceRecord(
+        # سجلات الامتثال من مصفوفة الفحص المتقاطع الحقيقية (بند بنداً)
+        status_map = {"COMPLIANT": "Compliant", "MINOR_DEVIATION": "Deviation", "CRITICAL_GAP": "Gap"}
+        for row in (compliance_matrix or {}).get("matrix", []):
+            row_status = row.get("status", "")
+            severity = "Low"
+            if row_status == "CRITICAL_GAP":
+                severity = "High" if row.get("strictness") == "Mandatory" else "Medium"
+            elif row_status == "MINOR_DEVIATION":
+                severity = "Medium"
+            db.add(ComplianceRecord(
                 tender_id=tender.id,
-                clause_code=str(req.get("req_id", "N/A")),
-                requirement=str(req.get("desc", "N/A")),
-                status=str(req.get("status", "Compliant")),
-                severity=str(req.get("severity", "Low")),
-                gap_analysis=str(req.get("gap_analysis", "")),
-            )
-            db.add(rec)
+                clause_code=str(row.get("clause_ref") or "N/A"),
+                requirement=str(row.get("clause_text") or "N/A"),
+                status=status_map.get(row_status, row_status),
+                severity=severity,
+                gap_analysis=str(row.get("remediation") or ""),
+            ))
 
         db.commit()
-        print(f"[SWARM] Tender {tender_id} audit completed - score {tender.technical_score}, nodes {len(audit_metadata)}")
+        logger.info("[SWARM] Tender %s audit completed - score %s, nodes %s",
+                    tender_id, tender.technical_score, len(audit_metadata))
     except Exception as exc:
         # فشل صريح: لا درجة ولا نتائج مُلفّقة — المستخدم يرى السبب الحقيقي.
-        print(f"[SWARM] Tender {tender_id} orchestration error: {exc}")
+        # الترتيب مهم: نحدّث قاعدة البيانات أولاً ثم نسجّل — print لرسالة عربية يرمي
+        # UnicodeEncodeError على كونسول ويندوز ويُبقي المنافسة عالقة في processing.
         if db is not None:
             db.rollback()
             tender = db.query(Tender).filter(Tender.id == tender_id).first()
@@ -231,6 +242,7 @@ def _run_swarm_audit(tender_id: int, rfp_paths: list, schedule_path: str, client
                 tender.technical_score = None
                 tender.status = "failed"
                 db.commit()
+        logger.error("[SWARM] Tender %s orchestration error: %s", tender_id, exc)
     finally:
         if db is not None:
             db.close()
