@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-10-03T22:49:18.887334",
+  "project_id": "wastewater",
+  "owner_id": "nwc",
+  "selected_codes": [
+    "001-SUR-BASE",
+    "001-PRM-GOV",
+    "001-SUR-NET"
+  ],
+  "codes_count": 3,
+  "output_path": "C:\\Users\\AMANA\\AppData\\Local\\Temp\\pytest-of-AMANA\\pytest-54\\test_build_wastewater_docx0\\proposal.docx",
+  "status": "success",
+  "processing_time_seconds": 0.031,
+  "file_size_bytes": 41117,
+  "error": null
+}
