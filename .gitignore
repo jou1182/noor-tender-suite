@@ -44,6 +44,9 @@ tsconfig.tsbuildinfo
 radar/.radar-data/
 radar/service.log
 
+# ---------- ATPAS runtime output (مخرجات توليد واختبارات) ----------
+atpas_engine/output/
+
 # ---------- Vector stores & heavy data (تُعاد بناؤها) ----------
 qdrant_data/
 qdrant_storage/
