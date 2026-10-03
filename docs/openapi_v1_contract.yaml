@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: ConTech AI Platform API
+  title: Noor AI Platform API
   version: 1.0.0
   description: Enterprise REST API for automated infrastructure tender auditing.
 servers:

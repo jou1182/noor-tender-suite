@@ -1,7 +1,7 @@
-# ConTech AI Platform — منصة الذكاء المتعدد الوكلاء لمنافسات البناء
+# منظومة النور — Noor Tender Suite
 
-> **Multi-Agent Tender Intelligence for Saudi Construction**
-> 37 AI agents read the RFP, cross-examine your proposal clause-by-clause, and surface disqualification gaps before the evaluator does.
+> **منظومة أتمتة دورة العطاءات الهندسية: من رصد المنافسة الحكومية إلى تقديم عرض فني مطابق للكود.**
+> 37 وكيل ذكاء اصطناعي يقرأ كراسة الشروط، ويستجوب عرضك الفني بنداً-بنداً، ويكشف فجوات الاستبعاد قبل المقيّم.
 
 <p align="center">
   <b>FastAPI · LangGraph · Next.js 15 · PostgreSQL · Qdrant · Redis · Docker</b><br/>
@@ -19,13 +19,15 @@
 وإعادة التسمية من شاشة الإعدادات.
 
 **البدء في 3 خطوات**: انظر [Quick Start](#quick-start) أدناه — أو انقر مرتين على
-`ConTech.bat` على سطح المكتب (يشغّل Docker ويفتح المتصفح تلقائياً).
+`Noor.bat` على سطح المكتب (يشغّل Docker ويفتح المتصفح تلقائياً).
+
+> **السياق:** هذه المنظومة هي النواة الموحدة لعرض الهاكاثون الهندسي 2026 (المؤتمر الهندسي الدولي الرابع IECE) — التحدي 05: العروض الهندسية المتقدمة، ضمن مسار التطوير الهندسي. الشركة الظاهرة في بيانات العرض التجريبية هي **شركة النور للمقاولات** (كيان افتراضي لأغراض العرض).
 
 ---
 
 ## What It Solves
 
-| Pain | Before | With ConTech AI |
+| Pain | Before | With Noor Tender Suite |
 |---|---|---|
 | RFPs of 2000+ pages | Days of manual reading | Structured extraction in minutes |
 | Administrative disqualification (Etimad) | Discovered after submission | Flagged before you submit |
@@ -67,7 +69,7 @@
 ┌───▼───┐ ┌────▼───┐ ┌────▼───┐ ┌────▼────┐
 │Postgres│ │ Qdrant │ │ Redis  │ │ LLM API │
 │ (DB)  │ │vectors │ │ queue  │ │/Ollama  │
-└───────┘ └────────┘ └────────┘ └─────────┘
+└───────┘ └────────┘ └────────┘ └────────┘
 ```
 
 **Design principle**: deterministic engines do the math and compliance checks (no hallucination possible); LLMs only enrich language. Every agent is bindable to a different provider/model from Settings.
@@ -76,15 +78,15 @@
 
 ### One-click (recommended)
 
-Double-click **`ConTech.bat`** on the desktop (auto-created at deploy). It starts Docker Desktop if needed, brings up the stack, waits for health, and opens the browser.
+Double-click **`Noor.bat`** on the desktop (auto-created at deploy). It starts Docker Desktop if needed, brings up the stack, waits for health, and opens the browser.
 
 ### Manual setup
 
 ```bash
 # 1) Prerequisites: Docker Desktop + git
 # 2) Clone and configure
-git clone https://github.com/jou1182/contech-ai-platform.git
-cd contech-ai-platform
+git clone https://github.com/jou1182/noor-tender-suite.git
+cd noor-tender-suite
 cp .env.docker.example .env   # then edit values (see inside)
 
 # 3) Start the full stack
@@ -109,8 +111,8 @@ curl http://localhost:8000/api/v1/health   # {"status":"UP",...}
 ```bash
 # Backend (venv)
 python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt   # Windows
-.venv/Scripts/python -m uvicorn app.main:app --port 8000
+.venv\Scripts\python -m pip install -r requirements.txt   # Windows
+.venv\Scripts\python -m uvicorn app.main:app --port 8000
 
 # Frontend
 cd frontend
@@ -118,7 +120,7 @@ npm install
 npm run dev            # localhost:3000
 
 # Full test suite (187 tests)
-.venv/Scripts/python -m pytest tests/ -p no:cacheprovider
+.venv\Scripts\python -m pytest tests/ -p no:cacheprovider
 
 # Frontend type check
 cd frontend && npx tsc --noEmit
@@ -148,7 +150,7 @@ cd frontend && npx tsc --noEmit
 ├── tests/                      # 187 tests (pytest)
 ├── docs/                       # USER_GUIDE_AR · HANDOVER · MARKETING · AUDIT
 ├── docker-compose.yml          # 5 containers
-└── ConTech.bat                 # one-click launcher
+└── Noor.bat                    # one-click launcher
 ```
 
 ## Configuration
@@ -167,7 +169,7 @@ LLM providers are configured **from the UI** (Settings → LLM Providers): pick 
 ## Testing
 
 ```bash
-.venv/Scripts/python -m pytest tests/ -p no:cacheprovider
+.venv\Scripts\python -m pytest tests/ -p no:cacheprovider
 # 187 passed — includes RBAC, ingestion, swarm lifecycle, RBAC isolation,
 # proposal evaluation, and the audit-skill self-tests
 ```
@@ -185,6 +187,8 @@ LLM providers are configured **from the UI** (Settings → LLM Providers): pick 
 
 - ✅ MVP complete: ingestion → swarm → studios → sealed dossier
 - ✅ Security audit passed (path traversal, CORS, secrets — all patched)
+- 🔜 دمج مولد العروض الفنية (ATPAS engine) كوحدة توليد داخل المنظومة
+- 🔜 دمج رادار المنافسات (رصد اعتماد) كوحدة رصد
 - 🔜 Portfolio dashboard live data binding
 - 🔜 Pilot on 3–5 real tenders (the sales gate)
 - 🔜 Full RTL polish + English docs mirror

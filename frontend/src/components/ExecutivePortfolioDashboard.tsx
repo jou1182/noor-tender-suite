@@ -16,8 +16,8 @@ export const ExecutivePortfolioDashboard: React.FC<Props> = ({ overview }) => {
   useEffect(() => {
     setLang(getLang());
     const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
-    window.addEventListener('contech.lang-changed', onChange);
-    return () => window.removeEventListener('contech.lang-changed', onChange);
+    window.addEventListener('noor.lang-changed', onChange);
+    return () => window.removeEventListener('noor.lang-changed', onChange);
   }, []);
   const p = overview?.portfolio;
   const dist: Record<string, number> = overview?.compliance_distribution || {};

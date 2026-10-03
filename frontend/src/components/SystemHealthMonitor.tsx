@@ -16,8 +16,8 @@ export const SystemHealthMonitor: React.FC<Props> = ({ overview }) => {
   useEffect(() => {
     setLang(getLang());
     const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
-    window.addEventListener('contech.lang-changed', onChange);
-    return () => window.removeEventListener('contech.lang-changed', onChange);
+    window.addEventListener('noor.lang-changed', onChange);
+    return () => window.removeEventListener('noor.lang-changed', onChange);
   }, []);
   const sys = overview?.system;
   const activity = overview?.recent_activity || [];

@@ -22,7 +22,7 @@ def generate_docs():
         title=app.title,
         version=app.version,
         openapi_version=app.openapi_version,
-        description="ConTech AI Master Application Programming Interface",
+        description="Noor AI Master Application Programming Interface",
         routes=app.routes,
     )
     
@@ -36,7 +36,7 @@ def generate_docs():
     <!DOCTYPE html>
     <html>
     <head>
-    <title>ConTech AI - Master API Documentation</title>
+    <title>Noor AI - Master API Documentation</title>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">

@@ -5,10 +5,10 @@ import logging
 import os
 import time
 
-logger = logging.getLogger("contech.swarm")
+logger = logging.getLogger("noor.swarm")
 logging.basicConfig(level=logging.INFO)
 
-app =FastAPI(title="ConTech AI Platform Master API", version="1.0.0")
+app =FastAPI(title="Noor AI Platform Master API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

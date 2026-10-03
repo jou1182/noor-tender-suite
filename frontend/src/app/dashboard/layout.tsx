@@ -26,7 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Building2 className="h-5 w-5 text-white" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-black tracking-tight text-white leading-tight">ConTech AI</p>
+            <p className="text-sm font-black tracking-tight text-white leading-tight">Noor AI</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Enterprise Workspace</p>
           </div>
         </div>

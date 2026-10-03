@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 class TrainingDatasetConfig(BaseModel):
     """Configuration for the curated training dataset."""
 
-    dataset_name: str = "contech-sbc304"
+    dataset_name: str = "noor-sbc304"
     format: str = "alpaca"  # alpaca | sharegpt
     train_split_pct: float = 0.9
     validation_split_pct: float = 0.1
@@ -50,7 +50,7 @@ class QuantizationJob(BaseModel):
     output_dir: str = "quantized"
     quant_precisions: List[str] = Field(default_factory=lambda: ["Q4_K_M", "Q8_0"])
     llama_cpp_path: str = "llama.cpp"
-    ollama_model_name: str = "contech-qwen32b"
+    ollama_model_name: str = "noor-qwen32b"
     system_prompt: str = (
         "You are an expert Saudi construction tender engineer. "
         "Answer strictly per SBC-304 and FIDIC clauses with numeric precision."

@@ -1,4 +1,4 @@
-# ConTech AI Platform: Operations Playbook
+# Noor AI Platform: Operations Playbook
 
 ## 1. System Requirements & Tech Stack
 - **OS**: Linux / Windows Server (WSL2 recommended for local dev)
@@ -21,14 +21,14 @@ The entire microservices stack (Frontend, Backend, DBs) is packaged in a Helm Ch
 
 ### Installation
 1. Ensure your Kubernetes cluster context is set.
-2. Deploy the platform to the `contech-prod` namespace:
+2. Deploy the platform to the `noor-prod` namespace:
 ```bash
-kubectl create namespace contech-prod
-helm install contech-ai ./deploy/helm/contech-platform --namespace contech-prod -f ./deploy/helm/contech-platform/values.yaml
+kubectl create namespace noor-prod
+helm install noor-ai ./deploy/helm/noor-platform --namespace noor-prod -f ./deploy/helm/noor-platform/values.yaml
 ```
 3. Check pod status:
 ```bash
-kubectl get pods -n contech-prod
+kubectl get pods -n noor-prod
 ```
 
 ## 4. Disaster Recovery & Restoration (DR)

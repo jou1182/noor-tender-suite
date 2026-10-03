@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ConTech AI Platform — Enterprise Tender Intelligence",
+  title: "منظومة النور — أتمتة دورة العطاءات الهندسية",
   description:
-    "Unified multi-agent ConTech AI dashboard: swarm orchestration, engineering studios, commercial analytics and field operations.",
+    "منظومة ويب عربية موحدة: رصد المنافسات الحكومية، تحليل كراسات الشروط، توليد العروض الفنية، وتدقيق الامتثال بـ 37 وكيل ذكاء اصطناعي قبل التقديم.",
 };
 
 export default function RootLayout({

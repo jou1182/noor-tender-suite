@@ -31,7 +31,7 @@ class DisasterRecoveryManager:
 
     def backup(self):
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_filename = f"contech_dr_snapshot_{timestamp}.zip"
+        backup_filename = f"noor_dr_snapshot_{timestamp}.zip"
         backup_filepath = os.path.join(self.backup_dir, backup_filename)
         
         logger.info(f"Initiating Disaster Recovery Snapshot: {backup_filename}")
@@ -86,7 +86,7 @@ class DisasterRecoveryManager:
             logger.error("--- DISASTER RECOVERY DRY RUN FAILED ---")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="ConTech DR Pipeline")
+    parser = argparse.ArgumentParser(description="Noor DR Pipeline")
     parser.add_argument("--action", choices=["backup", "restore", "test"], required=True)
     args = parser.parse_args()
     

@@ -53,8 +53,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
   useEffect(() => {
     setLangState(getLang());
     const onChange = (e: Event) => setLangState((e as CustomEvent).detail as Lang);
-    window.addEventListener('contech.lang-changed', onChange);
-    return () => window.removeEventListener('contech.lang-changed', onChange);
+    window.addEventListener('noor.lang-changed', onChange);
+    return () => window.removeEventListener('noor.lang-changed', onChange);
   }, []);
 
   const toggleLang = () => {
@@ -85,7 +85,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
     if (loadingList) return;
     // بعد «بدء من جديد» (tenant.id='') نبقى في وضع فارغ — لا اختيار تلقائي
     if (tenant.id === '') return;
-    const savedId = typeof window !== 'undefined' ? sessionStorage.getItem('contech.activeTenderId') : null;
+    const savedId = typeof window !== 'undefined' ? sessionStorage.getItem('noor.activeTenderId') : null;
     if (savedId) {
       const saved = tenants.find((t) => String(t.id) === savedId);
       if (saved) {
@@ -102,7 +102,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
   // حفظ المنافسة النشطة عند تغييرها
   useEffect(() => {
     if (typeof window !== 'undefined' && tenant.id && tenant.id !== '1') {
-      sessionStorage.setItem('contech.activeTenderId', tenant.id);
+      sessionStorage.setItem('noor.activeTenderId', tenant.id);
     }
   }, [tenant.id]);
 
@@ -125,7 +125,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
 
   /** «بدء من جديد» — يمسح الجلسة الحالية فقط (لا يحذف أي بيانات) ويبدأ من أول منافسة */
   const handleResetSession = async () => {
-    sessionStorage.removeItem('contech.activeTenderId');
+    sessionStorage.removeItem('noor.activeTenderId');
     // نبدأ من أول منافسة في القائمة دائماً
     const list = await load();
     if (list.length > 0) {
@@ -134,7 +134,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
       // لذا نطلق حدث session-reset الذي يصفّر حالات الشاشة كلها (epoch)
       onTenantChange(first);
     }
-    window.dispatchEvent(new CustomEvent('contech.session-reset'));
+    window.dispatchEvent(new CustomEvent('noor.session-reset'));
     setMenuOpen(false);
   };
 
@@ -205,7 +205,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
             </div>
             <div className="min-w-0">
               <h1 className="text-sm md:text-base font-black text-white tracking-tight truncate leading-tight">
-                ConTech AI Platform
+                Noor AI Platform
               </h1>
               <p className="hidden sm:flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-teal-400 font-bold">
                 <Radio size={10} className="animate-pulse" /> {t("tagline", lang)}

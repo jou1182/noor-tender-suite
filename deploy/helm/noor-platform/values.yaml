@@ -1,17 +1,17 @@
-# Global configuration overrides for ConTech K8s Deployments
+# Global configuration overrides for Noor K8s Deployments
 global:
   environment: production
 
 frontend:
   replicaCount: 2
-  image: "contech/frontend:v1.0"
+  image: "noor/frontend:v1.0"
   service:
     type: ClusterIP
     port: 80
 
 backend:
   replicaCount: 3
-  image: "contech/backend:v1.0"
+  image: "noor/backend:v1.0"
   service:
     type: ClusterIP
     port: 8000
@@ -35,4 +35,4 @@ qdrant:
 
 ingress:
   enabled: true
-  host: contech.alrawaf.local
+  host: noor.alrawaf.local

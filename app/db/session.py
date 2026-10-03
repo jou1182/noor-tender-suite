@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./contech.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./noor.db")
 ASYNC_DATABASE_URL = os.getenv("ASYNC_DATABASE_URL", "")
 
 # --- Async engine (PostgreSQL 16 + asyncpg) ---

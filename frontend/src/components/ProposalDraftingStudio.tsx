@@ -47,8 +47,8 @@ export const ProposalDraftingStudio: React.FC<{ tenderId: number }> = ({ tenderI
   useReactEffect(() => {
     setLang(getLang());
     const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
-    window.addEventListener('contech.lang-changed', onChange);
-    return () => window.removeEventListener('contech.lang-changed', onChange);
+    window.addEventListener('noor.lang-changed', onChange);
+    return () => window.removeEventListener('noor.lang-changed', onChange);
   }, []);
   const [draft, setDraft] = useState<DraftPackage | null>(null);
   const [loading, setLoading] = useState(false);

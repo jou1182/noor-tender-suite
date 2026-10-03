@@ -58,7 +58,7 @@ def check_tcp(host: str, port: int, timeout: float = 2.0) -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="ConTech AI Production Release")
+    parser = argparse.ArgumentParser(description="Noor AI Production Release")
     parser.add_argument("--env", default="production")
     args = parser.parse_args()
 

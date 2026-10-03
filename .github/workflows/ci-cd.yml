@@ -1,4 +1,4 @@
-name: ConTech AI Platform CI/CD
+name: Noor AI Platform CI/CD
 
 on:
   push:
@@ -56,6 +56,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build Backend Image
-      run: docker build -t contech-backend -f Dockerfile.backend .
+      run: docker build -t noor-backend -f Dockerfile.backend .
     - name: Build Frontend Image
-      run: cd frontend && docker build -t contech-frontend -f Dockerfile .
+      run: cd frontend && docker build -t noor-frontend -f Dockerfile .

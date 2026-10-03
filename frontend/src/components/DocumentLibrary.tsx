@@ -76,8 +76,8 @@ export const DocumentLibrary: React.FC<{ tenderId: number }> = ({ tenderId }) =>
   useEffect(() => {
     setLang(getLang());
     const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
-    window.addEventListener('contech.lang-changed', onChange);
-    return () => window.removeEventListener('contech.lang-changed', onChange);
+    window.addEventListener('noor.lang-changed', onChange);
+    return () => window.removeEventListener('noor.lang-changed', onChange);
   }, []);
 
   const load = useCallback(async () => {

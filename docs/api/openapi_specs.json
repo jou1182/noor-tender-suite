@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "ConTech AI Platform Master API",
-    "description": "ConTech AI Master Application Programming Interface",
+    "title": "Noor AI Platform Master API",
+    "description": "Noor AI Master Application Programming Interface",
     "version": "1.0.0"
   },
   "paths": {

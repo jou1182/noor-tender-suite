@@ -103,7 +103,7 @@ def _get_badge_style():
 class PdfProposalGenerator:
     """A4 PDF renderer for the technical proposal."""
 
-    def __init__(self, contractor_name: str = "ConTech AI Contracting Co.") -> None:
+    def __init__(self, contractor_name: str = "Noor AI Contracting Co.") -> None:
         self.contractor = contractor_name
         self.styles = getSampleStyleSheet()
         self.body = ParagraphStyle(

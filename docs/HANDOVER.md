@@ -1,17 +1,17 @@
 # HANDOVER — ملف التسليم للوكيل القادم
 > اقرأ هذا الملف أولاً. يلخص أين نحن في الرحلة، ماذا تغير ولماذا، وأين هي الثغرات المتبقية.
-> الدليل التفصيلي للمستخدم: `docs/USER_GUIDE_AR.md` — والمعمارية الكاملة في `docs/PRD_ConTech_AI_Platform.md`.
+> الدليل التفصيلي للمستخدم: `docs/USER_GUIDE_AR.md` — والمعمارية الكاملة في `docs/PRD_Noor_AI_Platform.md`.
 
 ---
 
 ## 1) هوية المشروع
 
-**ConTech AI Platform** — منصة مؤسسية لذكاء المنافسات الإنشائية في السعودية:
+**Noor AI Platform** — منصة مؤسسية لذكاء المنافسات الإنشائية في السعودية:
 ترفع حزمة RFP، يفككها سرب من 10 وكلاء LangGraph (استخراج البنود، BOQ، الجدول الزمني P6/DCMA، SBC، QA/QC، HSE، الفحص المتقاطع، الفريق الأحمر، التحكيم)، وتنتج درجة فنية /100 + مصفوفات امتثال + عرض مختوم ببلوكتشين.
 
 - **Backend**: FastAPI + SQLAlchemy + SQLite (تطوير)/PostgreSQL (إنتاج) + Qdrant + SSE — `.venv` جاهز، نقطة الدخول `app/main.py`.
 - **Frontend**: Next.js 15 App Router + Tailwind + ReactFlow — `frontend/`.
-- **قاعدة البيانات الحقيقية للتطوير**: `contech.db` و`tender_db.sqlite` في الجذر.
+- **قاعدة البيانات الحقيقية للتطوير**: `noor.db` و`tender_db.sqlite` في الجذر.
 - **لا Git repo** بعد — أول عمل موصى به للوكيل القادم: `git init` + commit أول.
 
 ## 2) حالة الجلسة الأخيرة (2026-08-25)
@@ -59,7 +59,7 @@ next build     → ✓ Compiled successfully (مرحلة page-data تفشل بس
 
 ## 4) ثغرات ومعروفات — خطة من هنا
 
-0. **Git repo ✓ (تم 2026-08-25):** `https://github.com/jou1182/contech-ai-platform` (PRIVATE، حساب jou1182، فرع master).
+0. **Git repo ✓ (تم 2026-08-25):** `https://github.com/jou1182/noor-ai-platform` (PRIVATE، حساب jou1182، فرع master).
    - `.gitignore` يستثني: `.env*` (عدا الأمثلة)، قواعد البيانات `*.db/*.sqlite`، `uploads/`، `qdrant_data/qdrant_storage`، النسخ الاحتياطية، الفيديو.
    - **روتين العمل من اليوم:** عدّل الكود → `git add -A && git commit -m "..."` → `git push` → ثم أعد بناء Docker إن كان التعديل يشغّل المنصة.
    - أول commit: `b68dd35` — MVP كامل (314 ملفاً، 459KB نظيف بلا أسرار).
@@ -77,7 +77,7 @@ next build     → ✓ Compiled successfully (مرحلة page-data تفشل بس
 ## 5) أوامر سريعة
 
 ```bash
-# نقرة واحدة للمستخدم: ConTech.bat على سطح المكتب (يشغل ويفتح المتصفح)
+# نقرة واحدة للمستخدم: Noor.bat على سطح المكتب (يشغل ويفتح المتصفح)
 
 # اختبار كل شيء
 .venv/Scripts/python.exe -m pytest tests/ -q -p no:cacheprovider

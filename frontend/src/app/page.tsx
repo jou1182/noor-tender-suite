@@ -90,8 +90,8 @@ export default function Dashboard() {
   useEffect(() => {
     setLang(getLang());
     const onChange = (e: Event) => setLang((e as CustomEvent).detail as Lang);
-    window.addEventListener('contech.lang-changed', onChange);
-    return () => window.removeEventListener('contech.lang-changed', onChange);
+    window.addEventListener('noor.lang-changed', onChange);
+    return () => window.removeEventListener('noor.lang-changed', onChange);
   }, []);
   useEffect(() => {
     fetchPlatformOverview().then(setOverview);
@@ -113,8 +113,8 @@ export default function Dashboard() {
       setTenderId(null);
       setActiveTab('compliance');
     };
-    window.addEventListener('contech.session-reset', onReset);
-    return () => window.removeEventListener('contech.session-reset', onReset);
+    window.addEventListener('noor.session-reset', onReset);
+    return () => window.removeEventListener('noor.session-reset', onReset);
   }, []);
 
   const handleLaunchSwarm = async () => {
@@ -365,7 +365,7 @@ export default function Dashboard() {
 
         <footer className="flex flex-col md:flex-row items-center justify-between gap-2 pt-2 pb-6 text-[10px] text-slate-500 border-t border-teal-500/15">
           <span className="flex items-center gap-1.5 font-bold uppercase tracking-widest">
-            <Zap className="h-3 w-3 text-teal-500" /> ConTech AI Platform · Multi-Agent Tender Intelligence
+            <Zap className="h-3 w-3 text-teal-500" /> Noor AI Platform · Multi-Agent Tender Intelligence
           </span>
           <span className="flex items-center gap-1.5">
             <Database className="h-3 w-3 text-blue-500" /> PostgreSQL · Qdrant · Redis · LangGraph — all systems operational

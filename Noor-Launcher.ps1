@@ -1,4 +1,4 @@
-# ConTech AI Platform - One-Click Launcher
+# Noor AI Platform - One-Click Launcher
 # 1) Docker mode if Docker Desktop can start; 2) otherwise local mode (venv + npm run dev).
 # No hard-coded project path: everything is relative to this script's folder.
 
@@ -38,7 +38,7 @@ function Find-DockerDesktop {
 
 Write-Host ""
 Say "============================================" Cyan
-Say " ConTech AI Platform - Starting..." Cyan
+Say " Noor AI Platform - Starting..." Cyan
 Say " Project: $ProjectDir" DarkGray
 Say "============================================" Cyan
 

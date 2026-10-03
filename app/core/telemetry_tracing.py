@@ -2,10 +2,10 @@ import time
 from prometheus_client import Counter, Histogram, Gauge
 
 # Prometheus Metrics Definitions
-ACTIVE_WORKFLOWS = Counter('contech_active_workflows_total', 'Total number of LangGraph agent workflows executed')
-ERROR_RATES = Counter('contech_error_rates_total', 'Total number of fatal system or agent execution errors')
-LLM_LATENCY = Histogram('contech_llm_call_latency_seconds', 'Latency of multi-provider LLM API calls in seconds')
-SYSTEM_HEALTH = Gauge('contech_system_health', 'System health availability status (1=Online, 0=Offline)')
+ACTIVE_WORKFLOWS = Counter('noor_active_workflows_total', 'Total number of LangGraph agent workflows executed')
+ERROR_RATES = Counter('noor_error_rates_total', 'Total number of fatal system or agent execution errors')
+LLM_LATENCY = Histogram('noor_llm_call_latency_seconds', 'Latency of multi-provider LLM API calls in seconds')
+SYSTEM_HEALTH = Gauge('noor_system_health', 'System health availability status (1=Online, 0=Offline)')
 
 class TelemetryEngine:
     @staticmethod

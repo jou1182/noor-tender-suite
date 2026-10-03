@@ -2,7 +2,7 @@
 """
 Executive Dry Run & Live Demonstration Harness.
 
-Runs a staged, stakeholder-facing walkthrough of the ConTech AI platform:
+Runs a staged, stakeholder-facing walkthrough of the Noor AI platform:
 
   Step 1: Ingest sample mega-infrastructure tender package + instant PII masking
   Step 2: SBC-304 engine + intentional structural violation trapping
@@ -41,14 +41,14 @@ def log(step: str, msg: str) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="ConTech AI Executive Dry Run")
+    parser = argparse.ArgumentParser(description="Noor AI Executive Dry Run")
     parser.add_argument("--verify-all", action="store_true", help="Non-interactive verification pass")
     args = parser.parse_args()
     interactive = not args.verify_all
 
     feedback = DryRunFeedbackService()
     print("=" * 78)
-    print("ConTech AI PLATFORM — EXECUTIVE DRY RUN")
+    print("Noor AI PLATFORM — EXECUTIVE DRY RUN")
     print("=" * 78)
 
     # ---- Step 1: Ingestion + PII masking ----

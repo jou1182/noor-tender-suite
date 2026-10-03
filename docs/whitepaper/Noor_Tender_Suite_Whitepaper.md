@@ -1,7 +1,7 @@
-# ConTech AI Platform: Enterprise Architecture Whitepaper
+# Noor AI Platform: Enterprise Architecture Whitepaper
 
 ## 1. Executive Summary
-The **ConTech AI Platform** is a master-level autonomous engineering and orchestration suite designed specifically for heavy civil, infrastructure, and commercial megaprojects (e.g., NEOM, Aramco, Qiddiya). By migrating from deterministic, single-threaded software into an autonomous **Multi-Agent LangGraph Swarm**, the platform radically compresses the bidding and technical proposal lifecycle from months to minutes, mathematically guaranteeing strict compliance with international engineering and legal baselines (FIDIC, SBC, ASTM, DCMA).
+The **Noor AI Platform** is a master-level autonomous engineering and orchestration suite designed specifically for heavy civil, infrastructure, and commercial megaprojects (e.g., NEOM, Aramco, Qiddiya). By migrating from deterministic, single-threaded software into an autonomous **Multi-Agent LangGraph Swarm**, the platform radically compresses the bidding and technical proposal lifecycle from months to minutes, mathematically guaranteeing strict compliance with international engineering and legal baselines (FIDIC, SBC, ASTM, DCMA).
 
 ## 2. Multi-Agent Orchestration (LangGraph Topology)
 The system operates on a state-machine architecture powered by **LangGraph**. A shared `OrchestrationState(TypedDict)` propagates through 20 specialized, domain-expert agent nodes. 
@@ -16,7 +16,7 @@ The system operates on a state-machine architecture powered by **LangGraph**. A 
 The Fan-Out / Fan-In graph topology ensures absolute chronological processing, passing the enriched dictionary state seamlessly down the assembly line.
 
 ## 3. Mathematical & Empirical Validation Engines
-Unlike standard LLMs that hallucinate math, ConTech AI utilizes deterministic Python parsers:
+Unlike standard LLMs that hallucinate math, Noor AI utilizes deterministic Python parsers:
 *   **Geotechnical & Structural Integrity**: Validates soil bearing capacity against Saudi Building Code (SBC-303/304). 
 *   **Hydraulics**: Applies the Manning Equation to storm-water systems.
 *   **Cost & S-Curve Array Generation**: Vectorizes baseline time-phased cost allocations, detecting aggressive front-loading bidding strategies via early/late cash-flow plotting.

@@ -1,7 +1,7 @@
-# Product Requirements Document (PRD): ConTech AI Platform
+# Product Requirements Document (PRD): Noor AI Platform
 
 ## 1. Overview
-The ConTech AI Platform is an enterprise-grade multi-agent orchestration system designed to automate the rigorous auditing of infrastructure construction tenders. By cross-examining Request for Proposals (RFP), Method Statements, Primavera P6 Schedules, and Bills of Quantities (BOQ), the platform accelerates tender evaluation while ensuring strict adherence to engineering standards.
+The Noor AI Platform is an enterprise-grade multi-agent orchestration system designed to automate the rigorous auditing of infrastructure construction tenders. By cross-examining Request for Proposals (RFP), Method Statements, Primavera P6 Schedules, and Bills of Quantities (BOQ), the platform accelerates tender evaluation while ensuring strict adherence to engineering standards.
 
 ## 2. System Architecture
 The platform is built on a full-stack containerized architecture:

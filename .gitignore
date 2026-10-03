@@ -1,5 +1,5 @@
 # ============================================================
-# ConTech AI Platform — .gitignore
+# Noor AI Platform — .gitignore
 # يحمي الأسرار والبيانات الضخمة من الرفع إلى GitHub
 # ============================================================
 
@@ -17,7 +17,7 @@
 *.sqlite
 *.sqlite3
 *.sqlite-journal
-contech.db*
+noor.db*
 tender_db.sqlite*
 test_stress.db*
 

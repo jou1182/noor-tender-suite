@@ -1,4 +1,4 @@
-# ConTech AI Platform — Executive Pitch Deck
+# Noor AI Platform — Executive Pitch Deck
 
 > Enterprise Autonomous Tender Intelligence for the Kingdom's Megaproject Pipeline
 > Version 1.0 · Confidential — For Stakeholder Review
@@ -7,7 +7,7 @@
 
 ## Slide 1 — Cover
 
-**ConTech AI Platform**
+**Noor AI Platform**
 
 Autonomous Multi-Agent Tender Intelligence & Technical Bid Production
 
@@ -28,11 +28,11 @@ Autonomous Multi-Agent Tender Intelligence & Technical Bid Production
 
 ---
 
-## Slide 3 — Solution: ConTech AI Platform
+## Slide 3 — Solution: Noor AI Platform
 
 **A deterministic multi-agent swarm that audits and produces technical bids end-to-end.**
 
-| Capability | Manual Baseline | ConTech AI |
+| Capability | Manual Baseline | Noor AI |
 |---|---|---|
 | BOQ parsing (5,000 lines) | 5–10 days | < 5 seconds |
 | SBC-304 compliance audit | 2–4 weeks | Real-time |
@@ -150,10 +150,10 @@ RFP/BOQ/Schedule ──▶ Ingestion ──▶ ┌── SBC-304 Audit ──┐
 **We seek enterprise pilot sponsorship for two live tenders in the next quarter.**
 
 1. Deploy to a sovereign sandbox with one client package (BOQ + specs + schedule)
-2. Benchmark ConTech AI vs the current manual baseline on compliance accuracy and cycle time
+2. Benchmark Noor AI vs the current manual baseline on compliance accuracy and cycle time
 3. Agree on rollout to the full pipeline portfolio
 
 ---
 
-*Contact: Platform Engineering · ConTech AI*  
+*Contact: Platform Engineering · Noor AI*  
 *All figures indicative; financial model available in `scripts/roi_calculator.py`.*

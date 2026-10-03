@@ -17,7 +17,7 @@ class Settings:
     """App configuration container (reads from environment)."""
 
     # --- Database ---
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./contech.db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./noor.db")
     ASYNC_DATABASE_URL: str = os.getenv("ASYNC_DATABASE_URL", "")
 
     # --- Cloud LLM ---

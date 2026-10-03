@@ -39,7 +39,7 @@ def _shade(cell, hex_color: str) -> None:
 class DocxProposalGenerator:
     """Enterprise-formatted DOCX proposal assembler."""
 
-    def __init__(self, contractor_name: str = "ConTech AI Contracting Co.") -> None:
+    def __init__(self, contractor_name: str = "Noor AI Contracting Co.") -> None:
         self.contractor = contractor_name
 
     def generate(self, context: Dict[str, Any], output_path: str) -> str:

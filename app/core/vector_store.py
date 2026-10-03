@@ -23,7 +23,7 @@ def get_global_client():
     return _global_client
 
 class VectorStoreAdapter:
-    def __init__(self, collection_name: str = "contech_tender_knowledge"):
+    def __init__(self, collection_name: str = "noor_tender_knowledge"):
         self.collection_name = collection_name
         self.client = get_global_client()
         self._initialize_collection()

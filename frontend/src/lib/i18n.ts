@@ -9,12 +9,12 @@
 
 export type Lang = "ar" | "en";
 
-const STORAGE_KEY = "contech.lang";
+const STORAGE_KEY = "noor.lang";
 
 const DICT = {
   // ---------- Header / عام ----------
-  appName: { ar: "ConTech AI Platform", en: "ConTech AI Platform" },
-  tagline: { ar: "ذكاء المنافسات متعدد الوكلاء", en: "Multi-Agent Tender Intelligence" },
+  appName: { ar: "منظومة النور", en: "Noor Tender Suite" },
+  tagline: { ar: "من رصد المنافسة إلى عرض مطابق للكود", en: "From tender radar to code-compliant proposal" },
   leadArchitect: { ar: "المهندس الرئيسي", en: "Lead Architect" },
   uploadTenderPackage: { ar: "رفع كراسة المنافسة", en: "Upload Tender Package" },
   startFresh: { ar: "بدء من جديد", en: "Start Fresh" },
@@ -163,7 +163,7 @@ export function getLang(): Lang {
 export function setLang(lang: Lang) {
   localStorage.setItem(STORAGE_KEY, lang);
   // إعادة التحميل تطبّق dir واللغة على كل المكونات دون حالة معقدة
-  window.dispatchEvent(new CustomEvent("contech.lang-changed", { detail: lang }));
+  window.dispatchEvent(new CustomEvent("noor.lang-changed", { detail: lang }));
 }
 
 export function t(key: DictKey, lang?: Lang): string {
