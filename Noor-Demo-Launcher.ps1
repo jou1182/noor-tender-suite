@@ -1,9 +1,8 @@
-﻿# منظومة النور — مشغّل العرض الكامل
-# يشغّل: الخادم الخلفي :8000 + الواجهة :3000 + رادار المنافسات :4318 (اختياري)
-# ثم يفتح المتصفح. أي مفتاح عند الإنهاء يوقف كل ما شُغّل من هنا.
+# Noor Tender Suite - full demo launcher
+# Starts: backend :8000 + frontend :3000 + competitor radar :4318 (optional)
+# Then opens the browser. Pressing any key at the end stops everything started here.
 $ErrorActionPreference = "Continue"
 $ProjectDir = $PSScriptRoot
-chcp 65001 | Out-Null
 
 function Say($msg, $color = "White") { Write-Host "  $msg" -ForegroundColor $color }
 
@@ -38,41 +37,41 @@ function Stop-ByPort($ports) {
 
 Write-Host ""
 Say "============================================" Cyan
-Say " منظومة النور — التشغيل الكامل" Cyan
-Say " $ProjectDir" DarkGray
+Say "  Noor Tender Suite - Full Launch" Cyan
+Say "  $ProjectDir" DarkGray
 Say "============================================" Cyan
 
-# ---------- فحوصات ما قبل التشغيل ----------
+# ---------- Pre-flight checks ----------
 $py = Join-Path $ProjectDir ".venv\Scripts\python.exe"
 if (-not (Test-Path $py)) {
-    Say "خطأ: بيئة .venv غير موجودة في $ProjectDir" Red
-    Say "أنشئها مرة واحدة: python -m venv .venv ; .venv\Scripts\python.exe -m pip install -r requirements.txt" Yellow
-    Read-Host "`n اضغط Enter للخروج"; exit 1
+    Say "ERROR: .venv not found in $ProjectDir" Red
+    Say "Create it once: python -m venv .venv ; .venv\Scripts\python.exe -m pip install -r requirements.txt" Yellow
+    Read-Host "`n Press Enter to exit"; exit 1
 }
 $frontend = Join-Path $ProjectDir "frontend"
 if (-not (Test-Path (Join-Path $frontend "node_modules"))) {
-    Say "خطأ: frontend\node_modules غير موجود — نفّذ مرة واحدة: cd frontend ; npm install" Red
-    Read-Host "`n اضغط Enter للخروج"; exit 1
+    Say "ERROR: frontend\node_modules not found - run once: cd frontend ; npm install" Red
+    Read-Host "`n Press Enter to exit"; exit 1
 }
 
-# ---------- المنفذان 8000 و3000: إخلاء بموافقتك ----------
+# ---------- Ports 8000 and 3000: free only with your consent ----------
 foreach ($port in 8000, 3000) {
     $owner = Get-PortOwner $port
     if ($owner) {
-        Say "المنفذ $port مشغول حالياً بالعملية التالية:" Yellow
+        Say "Port $port is currently in use by:" Yellow
         Say "  PID $($owner.Pid) :: $($owner.Cmd)" DarkGray
-        $ans = Read-Host "  اكتب K لإيقافها ومتابعة تشغيل منظومة النور، أو أي مفتاح آخر للخروج"
+        $ans = Read-Host "  Type K to stop it and continue with Noor Suite, or any other key to exit"
         if ($ans -ne "K" -and $ans -ne "k") {
-            Say "تم الإلغاء — لم يتغير أي شيء." Red
-            Read-Host "`n اضغط Enter للخروج"; exit 0
+            Say "Cancelled - nothing was changed." Red
+            Read-Host "`n Press Enter to exit"; exit 0
         }
         Stop-Process -Id $owner.Pid -Force -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 1
-        Say "أُوقفت العملية على المنفذ $port." Green
+        Say "Process on port $port stopped." Green
     }
 }
 
-# ---------- رادار المنافسات (اختياري) ----------
+# ---------- Competitor radar (optional) ----------
 $radar = Join-Path $ProjectDir "radar"
 $startRadar = $false
 if ((Test-Path (Join-Path $radar "scripts\etimad-sync-service.mjs")) -and (Test-Path (Join-Path $radar "node_modules"))) {
@@ -86,41 +85,41 @@ if ((Test-Path (Join-Path $radar "scripts\etimad-sync-service.mjs")) -and (Test-
 }
 if (-not (Get-PortOwner 4318)) { $radarPortFree = $true } else { $radarPortFree = $false; $startRadar = $false }
 
-# ---------- التشغيل ----------
+# ---------- Launch ----------
 try {
-    Say "[1] تشغيل الخادم الخلفي على :8000" Cyan
+    Say "[1] Starting backend on :8000" Cyan
     Start-Process -FilePath $py -ArgumentList "-m uvicorn app.main:app --port 8000" -WorkingDirectory $ProjectDir -WindowStyle Minimized
 
-    Say "[2] تشغيل الواجهة على :3000" Cyan
+    Say "[2] Starting frontend on :3000" Cyan
     Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run dev" -WorkingDirectory $frontend -WindowStyle Minimized
 
     if ($startRadar -and $radarPortFree) {
-        Say "[3] تشغيل رادار المنافسات على :4318" Cyan
+        Say "[3] Starting competitor radar on :4318" Cyan
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run start" -WorkingDirectory $radar -WindowStyle Minimized
     } elseif (-not $startRadar) {
-        Say "[3] رادار المنافسات مُتجاهَل (يتطلب Node >= 22.13 وnpm install داخل radar)" Yellow
+        Say "[3] Radar skipped (requires Node >= 22.13 and npm install inside radar)" Yellow
     }
 
-    Say "[4] الانتظار حتى تجهز الخدمات…" Cyan
+    Say "[4] Waiting for services to come up..." Cyan
     $backendOk = Wait-Url "http://localhost:8000/api/v1/health" 90
     $frontendOk = Wait-Url "http://localhost:3000" 120
     if ($backendOk -and $frontendOk) {
-        Say "المنظومة جاهزة. يُفتح المتصفح الآن…" Green
+        Say "Suite is ready. Opening browser..." Green
         Start-Process "http://localhost:3000"
-        Say "الواجهة:      http://localhost:3000" Green
-        Say "واجهة البرمجة: http://localhost:8000/docs" Green
-        Say "صفحة الرادار داخل المنظومة: http://localhost:3000/radar" Green
+        Say "Frontend: http://localhost:3000" Green
+        Say "API docs: http://localhost:8000/docs" Green
+        Say "Radar page inside the suite: http://localhost:3000/radar" Green
     } else {
-        Say "تنبيه: الخادم=$backendOk الواجهة=$frontendOk بعد المهلة — افتح http://localhost:3000 يدوياً بعد لحظات." Yellow
+        Say "WARNING: backend=$backendOk frontend=$frontendOk after timeout - open http://localhost:3000 manually in a few moments." Yellow
     }
 
     Write-Host ""
-    Say "اترك هذه النافذة مفتوحة أثناء العمل. اضغط أي مفتاح هنا لإيقاف المنظومة بالكامل." Yellow
+    Say "Keep this window open while working. Press any key here to stop the whole suite." Yellow
     Read-Host " "
 }
 finally {
-    Say "إيقاف منظومة النور…" Cyan
+    Say "Stopping Noor Tender Suite..." Cyan
     Stop-ByPort @(8000, 3000, 4318)
-    Say "توقفت كل الخدمات. إلى اللقاء." Green
+    Say "All services stopped. Goodbye." Green
     Start-Sleep -Seconds 2
 }
