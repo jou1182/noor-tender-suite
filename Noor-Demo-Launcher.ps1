@@ -90,8 +90,9 @@ foreach ($port in 8000, 3000) {
     if ($owner) {
         Say "Port $port is currently in use by:" Yellow
         Say "  PID $($owner.Pid) :: $($owner.Cmd)" DarkGray
-        $isDocker = ($owner.Cmd -match "com\.docker\.backend")
-        if ($isDocker) { Say "  This is a Docker container stack - it will be stopped with 'docker compose down'." Yellow }
+        $isDocker = ($owner.Cmd -match "com\.docker\.backend") -or ($owner.Cmd -match "wslrelay")
+        if ($owner.Cmd -match "wslrelay") { Say "  This is Docker Desktop's port relay (wslrelay) - stopping it frees the port only." Yellow }
+        elseif ($isDocker) { Say "  This is a Docker container stack - it will be stopped with 'docker compose down'." Yellow }
         $ans = Read-Host "  Type K to stop it and continue with Noor Suite, or any other key to exit"
         if ($ans -ne "K" -and $ans -ne "k") {
             Say "Cancelled - nothing was changed." Red
