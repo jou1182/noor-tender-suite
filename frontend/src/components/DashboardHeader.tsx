@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Boxes, Building2, ChevronDown, UploadCloud, Menu, X, ShieldCheck, Radio,
-  Settings, Plus, Trash2, RefreshCw, Loader2, Check, RotateCcw, Languages, PenLine,
+  Settings, Plus, Trash2, RefreshCw, Loader2, Check, RotateCcw, Languages, PenLine, FileText,
 } from 'lucide-react';
 import { TenderSummary, listTenders, createTender, deleteTender, renameTender } from '../lib/tenders_client';
 import type { TenantContext } from '../lib/demoData';
@@ -205,7 +205,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
             </div>
             <div className="min-w-0">
               <h1 className="text-sm md:text-base font-black text-white tracking-tight truncate leading-tight">
-                Noor AI Platform
+                منظومة النور
               </h1>
               <p className="hidden sm:flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-teal-400 font-bold">
                 <Radio size={10} className="animate-pulse" /> {t("tagline", lang)}
@@ -366,6 +366,16 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
               {tenant.id === '' ? 'منافسة جديدة' : t("uploadTenderPackage", lang)}
             </button>
 
+            {/* مولد العروض الهندسية (ATPAS) */}
+            <button
+              onClick={() => router.push('/proposal-builder')}
+              title="مولد العروض الهندسية — ATPAS"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-300 border border-slate-600 hover:border-teal-500/50 hover:text-teal-300 px-3 py-2.5 rounded-lg transition"
+            >
+              <FileText className="h-4 w-4" />
+              مولد العروض
+            </button>
+
             {/* تبديل اللغة عربي/إنجليزي */}
             <button
               onClick={toggleLang}
@@ -388,6 +398,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ tenant, onTena
 
           {/* Mobile actions */}
           <div className="flex lg:hidden items-center gap-2">
+            <button onClick={() => router.push('/proposal-builder')}
+              className="p-2 rounded-lg text-slate-300 hover:text-teal-400 hover:bg-slate-800 transition" aria-label="مولد العروض">
+              <FileText className="h-5 w-5" />
+            </button>
             <button onClick={() => router.push('/settings')}
               className="p-2 rounded-lg text-slate-300 hover:text-teal-400 hover:bg-slate-800 transition" aria-label="Settings">
               <Settings className="h-5 w-5" />
