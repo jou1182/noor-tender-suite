@@ -1,88 +1,113 @@
-# ============================================================
-#  ConTech AI Platform — One-Click Launcher
-#  نقرة واحدة: يشغّل المنصة ويفتح المتصفح تلقائياً
-# ============================================================
+# ConTech AI Platform - One-Click Launcher
+# 1) Docker mode if Docker Desktop can start; 2) otherwise local mode (venv + npm run dev).
+# No hard-coded project path: everything is relative to this script's folder.
 
-$ErrorActionPreference = "SilentlyContinue"
-$ProjectDir = "D:\Alrawaf\PY\Lead Architect _ConTech AI Platform"
-$URL = "http://localhost:3000"
+$ErrorActionPreference = "Continue"
+$ProjectDir = $PSScriptRoot
+$FrontendUrl = "http://localhost:3000"
+$BackendHealth = "http://localhost:8000/api/v1/health"
 
-Write-Host ""
-Write-Host "  ============================================" -ForegroundColor Cyan
-Write-Host "   ConTech AI Platform - Starting..." -ForegroundColor Cyan
-Write-Host "  ============================================" -ForegroundColor Cyan
-Write-Host ""
+function Say($msg, $color = "White") { Write-Host "  $msg" -ForegroundColor $color }
 
-# ---------- 1) Docker Desktop يعمل؟ ----------
+function Test-Url($url) {
+    try { return ((Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 3).StatusCode -eq 200) } catch { return $false }
+}
+
+function Wait-Url($url, $seconds) {
+    $end = (Get-Date).AddSeconds($seconds)
+    while ((Get-Date) -lt $end) {
+        if (Test-Url $url) { return $true }
+        Start-Sleep -Seconds 2
+    }
+    return $false
+}
+
 function Test-DockerReady {
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
     docker info *> $null
     return ($LASTEXITCODE -eq 0)
 }
 
+function Find-DockerDesktop {
+    $candidates = @(
+        "$env:LOCALAPPDATA\Programs\DockerDesktop\Docker Desktop.exe",
+        "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
+    )
+    return $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+
+Write-Host ""
+Say "============================================" Cyan
+Say " ConTech AI Platform - Starting..." Cyan
+Say " Project: $ProjectDir" DarkGray
+Say "============================================" Cyan
+
+if (-not (Test-Path (Join-Path $ProjectDir "app\main.py"))) {
+    Say "ERROR: app\main.py not found next to this launcher ($ProjectDir)." Red
+    Read-Host "  Press Enter to close"; exit 1
+}
+
+# Already running? just open it.
+if ((Test-Url $BackendHealth) -and (Test-Url $FrontendUrl)) {
+    Say "Platform already running." Green
+    Start-Process $FrontendUrl
+    exit 0
+}
+
+# ---------------- Docker mode ----------------
+$mode = "local"
 if (-not (Test-DockerReady)) {
-    Write-Host "  [1/4] Docker Desktop not running - launching it..." -ForegroundColor Yellow
-    Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
-    Write-Host "        Waiting for Docker engine (up to 90s)...",
-              ""
-    $waited = 0
-    while (-not (Test-DockerReady) -and $waited -lt 90) {
-        Start-Sleep -Seconds 3
-        $waited += 3
-        Write-Host "        ... $($waited)s" -ForegroundColor DarkGray
+    $exe = Find-DockerDesktop
+    if ($exe) {
+        Say "[1] Docker Desktop is not running - starting it (up to 90s)..." Yellow
+        Start-Process $exe
+        $waited = 0
+        while (-not (Test-DockerReady) -and $waited -lt 90) { Start-Sleep -Seconds 3; $waited += 3 }
     }
-    if (-not (Test-DockerReady)) {
-        Write-Host "  FAILED: Docker did not start. Open Docker Desktop manually and retry." -ForegroundColor Red
-        Read-Host "  Press Enter to close"
-        exit 1
-    }
-    Write-Host "  [OK] Docker is ready." -ForegroundColor Green
 }
-else {
-    Write-Host "  [1/4] Docker already running." -ForegroundColor Green
-}
-
-# ---------- 2) تشغيل الحاويات (إن لم تكن تعمل) ----------
-Write-Host "  [2/4] Ensuring platform containers are up..."
-Push-Location $ProjectDir
-docker compose up -d *> $null
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  FAILED: docker compose up. Check 'docker compose ps' output." -ForegroundColor Red
+if (Test-DockerReady) {
+    Say "[1] Docker is ready. Starting containers..." Green
+    Push-Location $ProjectDir
+    docker compose up -d
+    $code = $LASTEXITCODE
     Pop-Location
-    Read-Host "  Press Enter to close"
-    exit 1
-}
-Pop-Location
-Write-Host "  [OK] Containers are up." -ForegroundColor Green
-
-# ---------- 3) انتظار جاهزية الواجهة والخادم فعلياً ----------
-Write-Host "  [3/4] Waiting for the app to answer..."
-$ready = $false
-for ($i = 0; $i -lt 30; $i++) {
-    try {
-        $r = Invoke-WebRequest -Uri "$URL/api/v1/health" -UseBasicParsing -TimeoutSec 3
-        if ($r.StatusCode -eq 200) { $ready = $true; break }
-    } catch {}
-    Start-Sleep -Seconds 2
-}
-
-if (-not $ready) {
-    Write-Host "  WARNING: App did not answer within 60s - opening browser anyway." -ForegroundColor Yellow
+    if ($code -eq 0) { $mode = "docker" } else { Say "docker compose failed - falling back to local mode." Yellow }
 } else {
-    Write-Host "  [OK] Platform is answering (backend + frontend healthy)." -ForegroundColor Green
+    Say "[1] Docker unavailable - using local mode." Yellow
 }
 
-# ---------- 4) فتح المتصفح ----------
-Write-Host "  [4/4] Opening your browser -> $URL"
-Start-Process $URL
+# ---------------- Local mode ----------------
+if ($mode -eq "local") {
+    $py = Join-Path $ProjectDir ".venv\Scripts\python.exe"
+    if (-not (Test-Path $py)) {
+        Say "ERROR: .venv not found. Create it once:" Red
+        Say "  python -m venv .venv ; .venv\Scripts\python.exe -m pip install -r requirements.txt" Gray
+        Read-Host "  Press Enter to close"; exit 1
+    }
+    $frontend = Join-Path $ProjectDir "frontend"
+    if (-not (Test-Path (Join-Path $frontend "node_modules"))) {
+        Say "ERROR: frontend\node_modules missing. Run once:  cd frontend ; npm install" Red
+        Read-Host "  Press Enter to close"; exit 1
+    }
+    if (-not (Test-Url $BackendHealth)) {
+        Say "[2] Starting backend on :8000 (new window)..." Cyan
+        Start-Process -FilePath $py -ArgumentList "-m uvicorn app.main:app --port 8000" -WorkingDirectory $ProjectDir
+    }
+    if (-not (Test-Url $FrontendUrl)) {
+        Say "[3] Starting frontend on :3000 (new window)..." Cyan
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run dev" -WorkingDirectory $frontend
+    }
+}
 
-Write-Host ""
-Write-Host "  ============================================" -ForegroundColor Green
-Write-Host "   Platform is ready. Browser opened at:" -ForegroundColor Green
-Write-Host "   $URL" -ForegroundColor White
-Write-Host ""
-Write-Host "   Remember: you only ever use port 3000 in the" -ForegroundColor Gray
-Write-Host "   browser - port 8000 is the internal engine." -ForegroundColor Gray
-Write-Host "  ============================================" -ForegroundColor Green
+# ---------------- Wait & open ----------------
+Say "[4] Waiting for backend and frontend..."
+$backendOk = Wait-Url $BackendHealth 120
+$frontendOk = Wait-Url $FrontendUrl 120
+if ($backendOk -and $frontendOk) { Say "Platform is up ($mode mode)." Green }
+else {
+    Say "WARNING: backend=$backendOk frontend=$frontendOk after 120s - opening anyway." Yellow
+}
+Start-Process $FrontendUrl
+Say "Open: $FrontendUrl   (API: http://localhost:8000)" Green
 Write-Host ""
 Read-Host "  Press Enter to close this window"
