@@ -24,14 +24,25 @@ class TestReconciliationEngine(unittest.TestCase):
         discrepancies = ReconciliationEngine.calculate_variances(rates, boq, p6)
         self.assertEqual(len(discrepancies), 0)
 
-    def test_cross_exam_agent_integration(self):
-        state = {}
-        result = cross_exam_agent(state)
-        discrepancies = result.get("discrepancy_output", {}).get("discrepancies", [])
-        
-        # Excavation mock in cross_exam_agent: 10000 / 400 = 25 days expected vs 15 scheduled (40% variance)
-        self.assertTrue(any(d.get("activity") == "Excavation" for d in discrepancies))
-        self.assertEqual(discrepancies[0]["variance_percent"], 40.0)
+    def test_cross_exam_agent_reports_no_invented_discrepancies(self):
+        clauses = [{"clause_id": 1, "ref": "RFP-C1", "text": "All works shall comply with SBC 304.",
+                    "strictness": "Mandatory"}]
+        result = cross_exam_agent({"rfp_output": {"clauses": clauses}})
+        # No BOQ/rates/schedule maps in state -> no fabricated "Excavation" variance.
+        self.assertEqual(result["discrepancy_output"]["discrepancies"], [])
+
+    def test_cross_exam_agent_uses_real_state_maps(self):
+        clauses = [{"clause_id": 1, "ref": "RFP-C1", "text": "All works shall comply with SBC 304.",
+                    "strictness": "Mandatory"}]
+        state = {
+            "rfp_output": {"clauses": clauses},
+            "generated_proposal_output": [{"boq_item": "Excavation", "productivity_rate": 500,
+                                           "method_statement_text": "Excavation per SBC 304."}],
+            "boq_output": {"quantities": {"Excavation": 10000}},
+            "p6_output": {"activity_durations": {"Excavation": 12}},
+        }
+        d = cross_exam_agent(state)["discrepancy_output"]["discrepancies"]
+        self.assertEqual(d[0]["variance_percent"], 40.0)
 
 if __name__ == "__main__":
     unittest.main()

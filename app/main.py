@@ -202,7 +202,7 @@ def _run_swarm_audit(tender_id: int, rfp_paths: list, schedule_path: str, client
             print(f"[SWARM] Published rfp_compliance_update for tender {tender_id}")
 
         tender.audit_metadata = audit_metadata
-        tender.technical_score = arb.get("final_score", final_state.get("final_score", 82.5))
+        tender.technical_score = arb.get("final_score")
         tender.status = "completed"
 
         for req in final_state.get("extracted_requirements", []):
@@ -221,14 +221,15 @@ def _run_swarm_audit(tender_id: int, rfp_paths: list, schedule_path: str, client
         db.commit()
         print(f"[SWARM] Tender {tender_id} audit completed - score {tender.technical_score}, nodes {len(audit_metadata)}")
     except Exception as exc:
+        # فشل صريح: لا درجة ولا نتائج مُلفّقة — المستخدم يرى السبب الحقيقي.
         print(f"[SWARM] Tender {tender_id} orchestration error: {exc}")
         if db is not None:
             db.rollback()
             tender = db.query(Tender).filter(Tender.id == tender_id).first()
             if tender:
-                tender.audit_metadata = {}
-                tender.technical_score = 82.5
-                tender.status = "completed"
+                tender.audit_metadata = {"error": {"type": type(exc).__name__, "message": str(exc)[:500]}}
+                tender.technical_score = None
+                tender.status = "failed"
                 db.commit()
     finally:
         if db is not None:
@@ -247,7 +248,7 @@ async def trigger_tender_audit(
     from app.models.audit_log import AuditLog
 
     title = rfp_files[0].filename if rfp_files else "Imported Tender Package"
-    tender = Tender(title=title, client_name=user.get("workspace", "Saudi Aramco"), status="processing")
+    tender = Tender(title=title, client_name=user.get("workspace", "Unnamed Client"), status="processing")
     db.add(tender)
     db.flush()
     tender_id = tender.id
@@ -274,7 +275,7 @@ async def trigger_tender_audit(
     db.add(AuditLog(tender_id=tender_id, action="TRIGGER_AUDIT", user_id=user.get("sub", "unknown")))
     db.commit()
 
-    background_tasks.add_task(_run_swarm_audit, tender_id, rfp_paths, schedule_path, user.get("workspace", "Saudi Aramco"))
+    background_tasks.add_task(_run_swarm_audit, tender_id, rfp_paths, schedule_path, user.get("workspace", "Unnamed Client"))
     return {"tender_id": tender_id, "status": "processing", "message": "Audit triggered — swarm orchestration running"}
 
 

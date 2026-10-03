@@ -9,6 +9,7 @@ the shared SSE bus consumed by the dashboard.
 
 from typing import Any, Dict, Iterator, List
 
+from app.agents.errors import InsufficientInputError
 from app.core.swarm_telemetry import emit as default_emit
 from app.parsers.cross_exam_matrix_engine import CrossExamMatrixEngine
 from app.parsers.rfp_clause_parser import RfpClauseParser
@@ -26,14 +27,8 @@ def _extract_clauses(state: Dict[str, Any]) -> List[Dict[str, Any]]:
         parsed = RfpClauseParser.parse_text(rfp_output["raw_text"])
         clauses = parsed["clauses"]
 
-    if clauses is None:
-        # Fallback demonstration schema mirrors the upstream mock RFP agent.
-        parsed = RfpClauseParser.parse_text(
-            "Clause 1: All works shall comply with SBC 304 for concrete. "
-            "Clause 2: Contractor must submit a method statement. "
-            "Clause 3: Liquidated damages capped at 10% of contract value."
-        )
-        clauses = parsed["clauses"]
+    if not clauses:
+        raise InsufficientInputError("Cross-exam has no RFP clauses to verify against the proposal.")
     return clauses
 
 
@@ -125,10 +120,8 @@ def _reconcile_plan_versus_budget(state: Dict[str, Any]) -> List[Dict[str, Any]]
         durations = {str(k): float(v) for k, v in p6["activity_durations"].items()}
 
     if not (rates and quantities and durations):
-        # Deterministic cross-audit mock: 10,000 m3 @ 400 m3/day vs 15 scheduled days = 40%.
-        rates = {"Excavation": 400.0, "Concrete": 100.0}
-        quantities = {"Excavation": 10000.0, "Concrete": 1000.0}
-        durations = {"Excavation": 15.0, "Concrete": 10.0}
+        # No structured BOQ/rates/schedule maps: report no discrepancies rather than invent any.
+        return []
 
     return ReconciliationEngine.calculate_variances(rates, quantities, durations)
 

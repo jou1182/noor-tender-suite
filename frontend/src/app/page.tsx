@@ -42,7 +42,7 @@ import type { VEOpportunityCard, VESummary } from '../types/ve';
 import {
   demoSubmittalData, demoVeCards, demoVeSummary,
   demoScheduleHealth, demoPitchDeck, demoSimulation4D, demoItpHse, demoClaims,
-  demoIpc, demoFieldData, demoDossier, demoBlockchain, demoComplianceRecords,
+  demoIpc, demoFieldData, demoDossier, demoBlockchain,
 } from '../lib/demoData';
 import type { TenantContext } from '../lib/demoData';
 
@@ -82,7 +82,7 @@ export default function Dashboard() {
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
 
-  const { status, score, redTeamData, records: auditRecords } = useTenderAudit(tenderId ?? 0, tenant);
+  const { status, score, redTeamData, records: auditRecords, error: auditError } = useTenderAudit(tenderId ?? 0, tenant);
 
   // لوحة القيادة الحية — تُحدّث مع كل تغيير في حالة التدقيق
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
@@ -132,7 +132,7 @@ export default function Dashboard() {
     }
   };
 
-  const complianceRecords = auditRecords.length > 0 ? auditRecords : demoComplianceRecords;
+  const complianceRecords = auditRecords;
 
   const itpHseData: QaQcHseData =
     redTeamData?.qaqc_output || redTeamData?.hse_output
@@ -215,6 +215,14 @@ export default function Dashboard() {
             <Loader2 className="h-5 w-5 animate-spin shrink-0" />
             <span className="text-sm font-semibold">
               Multi-agent swarm auditing Tender #{tenderId} — watch the live swarm canvas below for streaming telemetry.
+            </span>
+          </div>
+        )}
+        {status === 'failed' && (
+          <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl px-4 py-3" role="alert">
+            <Activity className="h-5 w-5 shrink-0 mt-0.5" />
+            <span className="text-sm font-semibold" dir="auto">
+              فشل التدقيق — لم تُنتج أي نتائج. {auditError}
             </span>
           </div>
         )}
@@ -346,6 +354,11 @@ export default function Dashboard() {
                 );
               })}
             </div>
+            {!redTeamData && activeTab !== 'compliance' && (
+              <div className="px-4 py-2 text-[11px] font-bold bg-amber-500/15 text-amber-300 border-b border-amber-500/30" role="note" dir="auto">
+                ⚠ بيانات توضيحية فقط — ليست نتائج منافستك. أطلق الوكلاء على منافسة حقيقية لعرض نتائجها. / Sample data only — run the swarm on a real tender.
+              </div>
+            )}
             <div className="-mt-8 -mb-8">{renderStudio()}</div>
           </div>
         </section>

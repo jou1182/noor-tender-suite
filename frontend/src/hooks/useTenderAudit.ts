@@ -59,6 +59,7 @@ export function useTenderAudit(tenderId: number, tenant: TenantContext) {
   const [score, setScore] = useState<number | null>(null);
   const [records, setRecords] = useState<ComplianceRecord[]>([]);
   const [redTeamData, setRedTeamData] = useState<AuditMetadata | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const pollStatus = useCallback(async () => {
     if (!tenderId || tenderId <= 0) {
@@ -66,12 +67,22 @@ export function useTenderAudit(tenderId: number, tenant: TenantContext) {
       setScore(null);
       setRecords([]);
       setRedTeamData(null);
+      setError(null);
       return;
     }
     try {
       const data = await fetchTenderStatus(tenderId, tenant);
       if (!data) return;
       setStatus(data.status);
+      if (data.status === 'failed') {
+        const err = (data.audit_metadata as { error?: { message?: string } } | undefined)?.error;
+        setError(err?.message || 'فشل التدقيق / Audit failed');
+        setScore(null);
+        setRecords([]);
+        setRedTeamData(null);
+      } else {
+        setError(null);
+      }
       if (data.status === 'completed' || data.status === 'audited') {
         setScore(data.technical_score);
         setRecords((data.records as unknown as ComplianceRecord[]) || []);
@@ -99,5 +110,5 @@ export function useTenderAudit(tenderId: number, tenant: TenantContext) {
     window.location.href = `http://localhost:8000/api/v1/audits/${tenderId}/export`;
   };
 
-  return { status, score, records, redTeamData, pollStatus, downloadReport };
+  return { status, score, records, redTeamData, error, pollStatus, downloadReport };
 }

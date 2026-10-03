@@ -58,9 +58,10 @@ def _build_state_sections(metadata: Dict[str, Any]) -> Dict[str, Any]:
     return {"ve_proposals": ve_proposals, "compliance": compliance, "risks": risks, "evaluation": evaluation}
 
 
-def tender_score(metadata: Dict[str, Any]) -> float:
+def tender_score(metadata: Dict[str, Any]) -> float | None:
     arb = metadata.get("arbitrator_output") or {}
-    return float(arb.get("final_score", metadata.get("technical_score", 82.5)))
+    score = arb.get("final_score", metadata.get("technical_score"))
+    return float(score) if score is not None else None
 
 
 @router.post("/{project_id}/generate-proposal")

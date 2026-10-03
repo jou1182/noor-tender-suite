@@ -183,11 +183,12 @@ class TestCrossExamAgent:
         assert set(matrix["status_counts"].keys()) == {COMPLIANT, MINOR_DEVIATION, CRITICAL_GAP}
         assert "matrix" in matrix and matrix["matrix"]
 
-    def test_agent_fallback_parses_clauses_when_state_empty(self):
-        out = cross_exam_agent({"client_name": "TestClient"})
-        matrix = out["rfp_compliance_matrix"]
-        assert matrix["clause_count"] >= 1
-        assert 0.0 <= matrix["compliance_score"] <= 100.0
+    def test_agent_refuses_to_invent_clauses_when_state_empty(self):
+        import pytest
+        from app.agents.errors import InsufficientInputError
+
+        with pytest.raises(InsufficientInputError):
+            cross_exam_agent({"client_name": "TestClient"})
 
     def test_agent_emits_realtime_telemetry(self):
         state = {
@@ -212,7 +213,7 @@ class TestSwarmTelemetryBus:
 
     def test_agent_default_emit_reaches_bus(self):
         swarm_telemetry.clear()
-        cross_exam_agent({"client_name": "TestClient"})
+        cross_exam_agent({"rfp_output": {"clauses": RfpClauseParser.parse_text(RFP_TEXT)["clauses"]}})
         lines = swarm_telemetry.drain()
         assert any("Cross-Exam Agent" in line for line in lines)
         swarm_telemetry.clear()

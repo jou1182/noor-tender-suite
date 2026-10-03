@@ -33,8 +33,14 @@ from app.agents.submittal_agent import submittal_agent
 from app.agents.ipc_agent import ipc_agent
 
 class OrchestrationState(TypedDict, total=False):
+    # Inputs — must be declared: LangGraph silently drops undeclared input keys.
+    project_id: str
     tender_id: int
     client_name: str
+    rfp_documents: List[str]
+    methodology_documents: List[str]
+    schedule_file: str
+    boq_file: str
     institutional_memory_output: Dict[str, Any]
     rfp_output: Dict[str, Any]
     boq_output: Dict[str, Any]

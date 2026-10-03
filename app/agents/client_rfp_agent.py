@@ -8,14 +8,25 @@ and publishes the schema into the orchestration state for downstream agents
 
 from typing import Any, Dict, List
 
+from app.agents.errors import InsufficientInputError
 from app.parsers.pdf_parser import extract_text_from_pdf
 from app.parsers.rfp_clause_parser import RfpClauseParser
 
 
 def _read_document(path: str) -> str:
-    """Read an RFP document (PDF or plain text) into raw text."""
+    """Read an RFP document (real PDF, text-in-.pdf, or plain text) into raw text."""
     try:
-        if path.lower().endswith(".pdf"):
+        with open(path, "rb") as probe:
+            is_pdf = probe.read(5).startswith(b"%PDF")
+        if path.lower().endswith(".pdf") and is_pdf:
+            try:
+                from pypdf import PdfReader
+
+                text = "\n\f".join((p.extract_text() or "") for p in PdfReader(path).pages)
+                if text.strip():
+                    return text
+            except Exception:
+                pass
             return extract_text_from_pdf(path)
         with open(path, "r", encoding="utf-8", errors="replace") as fh:
             return fh.read()
@@ -38,16 +49,10 @@ def client_rfp_agent(state: Dict[str, Any]) -> Dict[str, Any]:
             raw_chunks.append(text)
 
     if not raw_chunks:
-        # Demo fallback so downstream agents always receive a clause schema.
-        demo_text = (
-            "Clause 1: All concrete works shall comply with SBC 304 for structural requirements.\n"
-            "Clause 2: Contractor must submit method statements and shop drawings for approval prior to commencement.\n"
-            "Clause 3: Liquidated damages shall be capped at 10% of the contract value.\n"
-            "Clause 4: Technical specification: Concrete mix design achieves 40 MPa with 0.38 water-cement ratio.\n"
-            "Clause 5: Contractor shall provide a qualified project manager with 10+ years of experience.\n"
-            "Clause 6: Submittal: Provide shop drawings, method statements and as-built reports."
+        raise InsufficientInputError(
+            "لم يُستخرج أي نص من ملفات كراسة الشروط (RFP). تأكد أن الملفات نصية أو فعّل OCR للملفات الممسوحة ضوئياً."
+            " / No readable text could be extracted from the RFP files."
         )
-        raw_chunks.append(demo_text)
 
     parsed_docs = [RfpClauseParser.parse_text(chunk) for chunk in raw_chunks]
 
